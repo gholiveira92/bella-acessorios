@@ -59,3 +59,7 @@
  GET /api/products/anel-casulo-dourado 200 in 4ms (next.js: 1305µs, application-code: 3ms)
   Reload env: .env
  GET /product/anel-casulo-dourado 200 in 97ms (next.js: 67ms, application-code: 31ms)
+ GET /product/anel-casulo-dourado 200 in 154ms (next.js: 76ms, application-code: 78ms)
+ GET /product/anel-casulo-dourado 200 in 63ms (next.js: 1376µs, application-code: 61ms)
+ GET /product/anel-casulo-dourado 200 in 24ms (next.js: 1717µs, application-code: 22ms)
+ GET /product/anel-casulo-dourado 200 in 12ms (next.js: 759µs, application-code: 11ms)
