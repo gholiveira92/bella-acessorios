@@ -45,3 +45,5 @@
  GET / 200 in 104ms (next.js: 35ms, application-code: 69ms)
  GET / 200 in 49ms (next.js: 828µs, application-code: 48ms)
  GET / 200 in 34ms (next.js: 773µs, application-code: 33ms)
+  Reload env: .env
+ GET / 200 in 133ms (next.js: 76ms, application-code: 56ms)
