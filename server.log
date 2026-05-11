@@ -50,3 +50,12 @@
  GET / 200 in 115ms (next.js: 77ms, application-code: 38ms)
   Reload env: .env
  GET / 200 in 117ms (next.js: 75ms, application-code: 42ms)
+ GET / 200 in 188ms (next.js: 10ms, application-code: 178ms)
+ GET /api/auth/session 200 in 77ms (next.js: 40ms, application-code: 36ms)
+ GET /catalog?category=aneis 200 in 27ms (next.js: 14ms, application-code: 13ms)
+ GET /api/products?category=aneis&sort=newest 200 in 23ms (next.js: 20ms, application-code: 3ms)
+ GET /product/anel-casulo-dourado 200 in 25ms (next.js: 12ms, application-code: 13ms)
+ GET /api/products/anel-casulo-dourado 200 in 19ms (next.js: 17ms, application-code: 2ms)
+ GET /api/products/anel-casulo-dourado 200 in 4ms (next.js: 1305µs, application-code: 3ms)
+  Reload env: .env
+ GET /product/anel-casulo-dourado 200 in 97ms (next.js: 67ms, application-code: 31ms)
