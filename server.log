@@ -63,3 +63,9 @@
  GET /product/anel-casulo-dourado 200 in 63ms (next.js: 1376µs, application-code: 61ms)
  GET /product/anel-casulo-dourado 200 in 24ms (next.js: 1717µs, application-code: 22ms)
  GET /product/anel-casulo-dourado 200 in 12ms (next.js: 759µs, application-code: 11ms)
+✓ Compiled in 297ms
+ GET /product/anel-casulo-dourado 200 in 131ms (next.js: 89ms, application-code: 42ms)
+ GET /product/anel-casulo-dourado 200 in 53ms (next.js: 1161µs, application-code: 52ms)
+ GET /product/anel-casulo-dourado 200 in 53ms (next.js: 2ms, application-code: 51ms)
+ GET /product/anel-casulo-dourado 200 in 20ms (next.js: 1106µs, application-code: 19ms)
+ GET /product/anel-casulo-dourado 200 in 10ms (next.js: 807µs, application-code: 9ms)
