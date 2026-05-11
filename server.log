@@ -36,3 +36,12 @@
  GET /api/products/anel-casulo-dourado 200 in 15ms (next.js: 7ms, application-code: 8ms)
  GET /api/products/anel-casulo-dourado 200 in 4ms (next.js: 1320µs, application-code: 2ms)
  GET / 200 in 41ms (next.js: 11ms, application-code: 30ms)
+  Reload env: .env
+ GET / 200 in 110ms (next.js: 73ms, application-code: 36ms)
+  Reload env: .env
+ GET / 200 in 89ms (next.js: 56ms, application-code: 33ms)
+✓ Compiled in 71ms
+ GET / 200 in 231ms (next.js: 107ms, application-code: 124ms)
+ GET / 200 in 104ms (next.js: 35ms, application-code: 69ms)
+ GET / 200 in 49ms (next.js: 828µs, application-code: 48ms)
+ GET / 200 in 34ms (next.js: 773µs, application-code: 33ms)
