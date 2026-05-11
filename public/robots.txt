@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Admin areas
+Disallow: /admin/
+Disallow: /api/
+
+# Auth pages
+Disallow: /auth/
+Disallow: /my-orders/
