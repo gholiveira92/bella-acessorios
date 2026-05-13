@@ -252,7 +252,7 @@ export async function POST(request: Request) {
 
     console.log(`[Shipping] CEP received: ${cep} -> cleaned: ${cleanCep}, subtotal: ${subtotal}`);
 
-    if (cleanCep.startsWith("19360")) {
+    if (cleanCep.startsWith("1936")) {
       console.log(`[Shipping] Local free shipping applied for Santo Anastácio`);
       const freeQuote: ShippingOption = {
         id: "free-local",

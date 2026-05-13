@@ -97,6 +97,8 @@ export async function POST(request: Request) {
 
       console.log(`[PIX] Creating payment for order ${orderNumber}, total: ${total}, email: ${session.user.email}`);
 
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bella-acessorios.vercel.app";
+
       try {
         const mpResponse = await axios.post(
           "https://api.mercadopago.com/v1/payments",
@@ -108,7 +110,7 @@ export async function POST(request: Request) {
             },
             external_reference: orderNumber,
             description: `Pedido Bella Acessórios - ${orderNumber}`,
-            notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/webhooks/mercadopago`,
+            notification_url: `${siteUrl}/api/webhooks/mercadopago`,
           },
           {
             headers: {
@@ -158,8 +160,8 @@ export async function POST(request: Request) {
             },
             external_reference: orderNumber,
             description: `Pedido Bella Acessórios - ${orderNumber}`,
-            notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/webhooks/mercadopago`,
             installments: installment || 1,
+            notification_url: `${siteUrl}/api/webhooks/mercadopago`,
           },
           {
             headers: {
