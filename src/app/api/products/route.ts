@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/db";
+import { PrismaClient } from "@prisma/client";
 
 export async function GET(request: Request) {
+  // Create fresh Prisma client for each request to avoid prepared statement issues
+  const prisma = new PrismaClient({
+    log: ["error"],
+  });
+
   try {
     const { searchParams } = new URL(request.url);
     
@@ -71,5 +76,7 @@ export async function GET(request: Request) {
       { error: "Erro ao buscar produtos", details: error.message },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
