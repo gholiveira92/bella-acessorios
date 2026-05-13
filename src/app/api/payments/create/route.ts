@@ -41,6 +41,8 @@ export async function POST(request: Request) {
 
     const orderNumber = "BELLA-" + Date.now().toString(36).toUpperCase();
 
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bella-acessorios.vercel.app";
+
     const existingAddress = await query(`
       SELECT id FROM addresses 
       WHERE user_id = $1 AND cep = $2 AND street = $3 AND number = $4
@@ -96,8 +98,6 @@ export async function POST(request: Request) {
       const webhookToken = generateWebhookToken();
 
       console.log(`[PIX] Creating payment for order ${orderNumber}, total: ${total}, email: ${session.user.email}`);
-
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://bella-acessorios.vercel.app";
 
       try {
         const mpResponse = await axios.post(
