@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const passwordHash = await bcrypt.hash(password, 12);
 
     const cpfValue = cpf && cpf.length === 11 ? cpf : Math.random().toString().slice(2, 13).padStart(11, "0");
-    const phoneValue = phone && phone.length >= 10 ? phone : null;
+    const phoneValue = phone && phone.length >= 10 ? phone : Math.random().toString().slice(2, 13).padStart(11, "0");
 
     await query(
       `INSERT INTO users (id, name, email, password_hash, cpf, gender, phone, role, email_verified, created_at, updated_at)
