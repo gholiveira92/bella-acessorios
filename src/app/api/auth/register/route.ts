@@ -27,7 +27,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error("Register error:", error);
-    return NextResponse.json({ error: "Erro ao cadastrar" }, { status: 500 });
+    console.error("Register error details:", {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      stack: error.stack
+    });
+    return NextResponse.json({ error: "Erro ao cadastrar", details: error.message }, { status: 500 });
   }
 }
