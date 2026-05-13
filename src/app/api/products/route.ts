@@ -65,10 +65,10 @@ export async function GET(request: Request) {
         totalPages: Math.ceil(total / limit),
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Products API error:", error);
     return NextResponse.json(
-      { error: "Erro ao buscar produtos" },
+      { error: "Erro ao buscar produtos", details: error.message },
       { status: 500 }
     );
   }
