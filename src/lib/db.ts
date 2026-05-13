@@ -1,17 +1,28 @@
 import { PrismaClient } from "@prisma/client";
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-export const prisma = 
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: ["error"],
-  });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+declare global {
+  var prisma: PrismaClient | undefined;
 }
 
-export default prisma;
+function createPrismaClient() {
+  const databaseUrl = process.env.DATABASE_URL || "";
+  
+  const urlWithNoCache = databaseUrl.includes("prepared_statement_cache")
+    ? databaseUrl
+    : databaseUrl + (databaseUrl.includes("?") ? "&" : "?") + "prepared_statement_cache=0";
+
+  return new PrismaClient({
+    datasources: {
+      db: {
+        url: urlWithNoCache,
+      },
+    },
+    log: ["error"],
+  });
+}
+
+export const prisma = global.prisma || createPrismaClient();
+
+if (process.env.NODE_ENV !== "production") {
+  global.prisma = prisma;
+}
