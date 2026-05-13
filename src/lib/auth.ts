@@ -1,6 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+import { query } from "@/lib/db-direct";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -15,23 +16,24 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email e senha são obrigatórios");
         }
 
-        const { default: prisma } = await import("@/lib/db");
-        
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+        const users = await query(
+          `SELECT id, name, email, password_hash, role, email_verified FROM users WHERE email = $1`,
+          [credentials.email]
+        );
+
+        const user = (users as any[])[0];
 
         if (!user) {
           throw new Error("Usuário não encontrado");
         }
 
-        const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
+        const isValid = await bcrypt.compare(credentials.password, user.password_hash);
 
         if (!isValid) {
           throw new Error("Senha incorreta");
         }
 
-        if (!user.emailVerified) {
+        if (!user.email_verified) {
           throw new Error("CONFIRM_EMAIL_REQUIRED");
         }
 
