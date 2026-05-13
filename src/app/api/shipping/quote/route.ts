@@ -30,6 +30,7 @@ async function getMelhorEnvioQuotes(cep: string, weight: number, width: number, 
   const token = process.env.MELHOR_ENVIO_TOKEN;
   
   if (!token || token === "your-token") {
+    console.log("Melhor Envio: Token não configurado");
     return [];
   }
 
@@ -46,21 +47,39 @@ async function getMelhorEnvioQuotes(cep: string, weight: number, width: number, 
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        timeout: 5000,
+        timeout: 10000,
       }
     );
 
-    return response.data.map((item: any) => ({
-      id: item.id,
-      name: item.name,
-      price: parseFloat(item.price),
-      currency: "BRL",
-      deliveryTime: item.delivery_time || item.company?.delivery_time || 5,
-      deliveryRange: item.delivery_range,
-      company: item.company?.name || item.name,
-    }));
-  } catch (error) {
-    console.error("Melhor Envio error:", error);
+    console.log("Melhor Envio response:", JSON.stringify(response.data));
+
+    if (Array.isArray(response.data)) {
+      return response.data.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        price: parseFloat(item.price),
+        currency: "BRL",
+        deliveryTime: item.delivery_time || item.company?.delivery_time || 5,
+        deliveryRange: item.delivery_range,
+        company: item.company?.name || item.name,
+      }));
+    }
+    
+    if (response.data?.shipping_options && Array.isArray(response.data.shipping_options)) {
+      return response.data.shipping_options.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        price: parseFloat(item.price),
+        currency: "BRL",
+        deliveryTime: item.delivery_time || 5,
+        deliveryRange: item.delivery_range,
+        company: item.company?.name || item.name,
+      }));
+    }
+
+    return [];
+  } catch (error: any) {
+    console.error("Melhor Envio error:", error.response?.data || error.message);
     return [];
   }
 }
@@ -82,9 +101,11 @@ async function getCorreiosQuotes(cep: string, weight: number, width: number, hei
       payload,
       {
         headers: { "Content-Type": "application/json" },
-        timeout: 5000,
+        timeout: 10000,
       }
     );
+
+    console.log("Correios response:", JSON.stringify(response.data));
 
     if (response.data?.services) {
       const services = response.data.services.filter((s: any) => s.error === null);
@@ -137,20 +158,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ quotes: [freeQuote], freeShippingApplied: true, reason: `Frete grátis aplicado: compras acima de R$ ${FREE_SHIPPING_THRESHOLD}` });
     }
 
+    const [melhorEnvioQuotes, correiosQuotes] = await Promise.allSettled([
+      getMelhorEnvioQuotes(cep, weight, width, height, length),
+      getCorreiosQuotes(cep, weight, width, height, length),
+    ]);
+
     let quotes: ShippingOption[] = [];
 
-    quotes = await getMelhorEnvioQuotes(cep, weight, width, height, length);
-    
-    if (quotes.length === 0) {
-      quotes = await getCorreiosQuotes(cep, weight, width, height, length);
+    if (melhorEnvioQuotes.status === "fulfilled") {
+      quotes.push(...melhorEnvioQuotes.value);
+    }
+
+    if (correiosQuotes.status === "fulfilled") {
+      quotes.push(...correiosQuotes.value);
     }
 
     if (quotes.length === 0) {
+      console.log("Nenhum frete encontrado, usando fallbacks");
       quotes = [
         { id: "pac", name: "PAC", price: 15.9, currency: "BRL", deliveryTime: 7, company: "Correios (Estimado)" },
         { id: "sedex", name: "SEDEX", price: 25.9, currency: "BRL", deliveryTime: 3, company: "Correios (Estimado)" },
       ];
     }
+
+    const seen = new Set<string>();
+    quotes = quotes.filter((q) => {
+      const key = `${q.company}-${q.name}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 
     quotes.sort((a, b) => a.price - b.price);
 
@@ -158,6 +195,10 @@ export async function POST(request: Request) {
       quotes,
       freeShippingThreshold: FREE_SHIPPING_THRESHOLD,
       currentSubtotal: subtotal,
+      source: {
+        melhorEnvio: melhorEnvioQuotes.status === "fulfilled" && melhorEnvioQuotes.value.length > 0,
+        correios: correiosQuotes.status === "fulfilled" && correiosQuotes.value.length > 0,
+      }
     });
   } catch (error) {
     console.error("Shipping quote error:", error);
