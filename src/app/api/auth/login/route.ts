@@ -65,7 +65,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Login error details:", {
+      message: error.message,
+      stack: error.stack
+    });
     return NextResponse.json({ error: "Erro ao fazer login" }, { status: 500 });
   }
 }
