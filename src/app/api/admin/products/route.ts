@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/db";
 import { authOptions } from "@/lib/auth";
+import { query } from "@/lib/db-direct";
 
 export async function GET(request: Request) {
   try {
@@ -18,55 +18,86 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
 
-    const where: any = {};
-    
+    let sqlWhere = "WHERE p.active = true";
+    const params: any[] = [];
+    let p = 1;
+
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-      ];
+      sqlWhere += ` AND (p.name ILIKE $${p++} OR p.description ILIKE $${p++})`;
+      params.push(`%${search}%`);
+      params.push(`%${search}%`);
     }
-    
+
     if (category && category !== "all") {
-      where.category = { slug: category };
+      sqlWhere += ` AND c.slug = $${p++}`;
+      params.push(category);
     }
 
     if (stock === "low") {
-      where.stock = { lte: 5 };
+      sqlWhere += ` AND p.stock <= 5`;
     } else if (stock === "out") {
-      where.stock = 0;
+      sqlWhere += ` AND p.stock = 0`;
     }
 
-    const [products, total, categories] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        include: {
-          category: true,
-          images: { orderBy: { isMain: "desc" } },
-        },
-        orderBy: { createdAt: "desc" },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      prisma.product.count({ where }),
-      prisma.category.findMany({ orderBy: { name: "asc" } }),
-    ]);
+    const offset = (page - 1) * limit;
+
+    const productsSql = `
+      SELECT p.id, p.name, p.slug, p.description, p.price, p.promotional_price, p.stock, p.active,
+             c.id as cat_id, c.name as cat_name, c.slug as cat_slug,
+             p.created_at
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      ${sqlWhere}
+      ORDER BY p.created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+
+    const countSql = `SELECT COUNT(*)::int as total FROM products p LEFT JOIN categories c ON p.category_id = c.id ${sqlWhere}`;
+
+    const categoriesSql = `SELECT id, name, slug FROM categories ORDER BY name`;
+
+    const products = await query(productsSql, params);
+    const countResult = await query(countSql, params);
+    const categories = await query(categoriesSql);
+
+    // Get images for products
+    const productIds = (products as any[]).map((p: any) => p.id);
+    let imagesMap: Record<string, any[]> = {};
+    
+    if (productIds.length > 0) {
+      const placeholders = productIds.map((_, i) => `$${i + 1}`).join(",");
+      const imagesResult = await query(
+        `SELECT product_id, id, url, is_main FROM product_images WHERE product_id IN (${placeholders}) ORDER BY is_main DESC, id`,
+        productIds
+      );
+      
+      for (const img of imagesResult as any[]) {
+        if (!imagesMap[img.product_id]) imagesMap[img.product_id] = [];
+        imagesMap[img.product_id].push({
+          id: img.id,
+          url: img.url,
+          isMain: img.is_main,
+        });
+      }
+    }
+
+    const total = countResult[0]?.total || 0;
 
     return NextResponse.json({
-      products: products.map((p) => ({
+      products: (products as any[]).map((p: any) => ({
         id: p.id,
         name: p.name,
         slug: p.slug,
         description: p.description,
-        price: p.price,
-        promotionalPrice: p.promotionalPrice,
+        price: parseFloat(p.price),
+        promotionalPrice: p.promotional_price ? parseFloat(p.promotional_price) : null,
         stock: p.stock,
         active: p.active,
-        category: p.category ? { id: p.category.id, name: p.category.name, slug: p.category.slug } : null,
-        images: p.images.map((img) => ({ id: img.id, url: img.url, isMain: img.isMain })),
-        createdAt: p.createdAt.toISOString(),
+        category: p.cat_id ? { id: p.cat_id, name: p.cat_name, slug: p.cat_slug } : null,
+        images: imagesMap[p.id] || [],
+        createdAt: p.created_at,
       })),
-      categories: categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug })),
+      categories: (categories as any[]).map((c: any) => ({ id: c.id, name: c.name, slug: c.slug })),
       pagination: {
         page,
         limit,
@@ -74,7 +105,7 @@ export async function GET(request: Request) {
         totalPages: Math.ceil(total / limit),
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Admin products error:", error);
     return NextResponse.json({ error: "Erro ao buscar produtos" }, { status: 500 });
   }
@@ -118,48 +149,44 @@ export async function POST(request: Request) {
       .replace(/--+/g, "-")
       .trim() + "-" + Date.now().toString(36);
 
-    const product = await prisma.product.create({
-      data: {
+    const productId = (await query(
+      `INSERT INTO products (id, name, slug, description, price, promotional_price, stock, category_id, weight, height, width, length, active, created_at, updated_at)
+       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+       RETURNING id`,
+      [
         name,
         slug,
-        description,
-        price: parseFloat(price),
-        promotionalPrice: promotionalPrice ? parseFloat(promotionalPrice) : null,
-        stock: parseInt(stock) || 0,
-        categoryId: categoryId || null,
-        weight: weight ? parseFloat(weight) : null,
-        height: height ? parseFloat(height) : null,
-        width: width ? parseFloat(width) : null,
-        length: length ? parseFloat(length) : null,
-        active: active !== false,
-      },
-    });
+        description || null,
+        parseFloat(price),
+        promotionalPrice ? parseFloat(promotionalPrice) : null,
+        parseInt(stock) || 0,
+        categoryId || null,
+        weight ? parseFloat(weight) : null,
+        height ? parseFloat(height) : null,
+        width ? parseFloat(width) : null,
+        length ? parseFloat(length) : null,
+        active !== false,
+      ]
+    ))[0] as any;
 
     if (images && images.length > 0) {
       for (let i = 0; i < images.length; i++) {
-        await prisma.productImage.create({
-          data: {
-            productId: product.id,
-            url: images[i],
-            isMain: i === 0,
-            order: i,
-          },
-        });
+        await query(
+          `INSERT INTO product_images (id, product_id, url, is_main, "order", created_at)
+           VALUES (gen_random_uuid()::text, $1, $2, $3, $4, NOW())`,
+          [productId.id, images[i], i === 0, i]
+        );
       }
     }
 
     if (variations && variations.length > 0) {
       for (const variation of variations) {
         if (variation.name && variation.value) {
-          await prisma.productVariation.create({
-            data: {
-              productId: product.id,
-              name: variation.name,
-              value: variation.value,
-              stock: variation.stock || 0,
-              price: variation.price ? parseFloat(variation.price) : null,
-            },
-          });
+          await query(
+            `INSERT INTO product_variations (id, product_id, name, value, stock, price, created_at)
+             VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, NOW())`,
+            [productId.id, variation.name, variation.value, variation.stock || 0, variation.price ? parseFloat(variation.price) : null]
+          );
         }
       }
     }
@@ -167,14 +194,14 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       product: {
-        id: product.id,
-        name: product.name,
-        slug: product.slug,
+        id: productId.id,
+        name,
+        slug,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Create product error:", error);
-    return NextResponse.json({ error: "Erro ao criar produto" }, { status: 500 });
+    return NextResponse.json({ error: "Erro ao criar produto", details: error.message }, { status: 500 });
   }
 }
 
@@ -187,92 +214,70 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { 
-      id,
-      name, 
-      description, 
-      price, 
-      promotionalPrice, 
-      stock, 
-      categoryId,
-      weight,
-      height,
-      width,
-      length,
-      active,
-      variations,
-    } = body;
+    const { id, name, description, price, promotionalPrice, stock, categoryId, weight, height, width, length, active } = body;
 
     if (!id) {
       return NextResponse.json({ error: "ID do produto é obrigatório" }, { status: 400 });
     }
 
-    const product = await prisma.product.update({
-      where: { id },
-      data: {
-        ...(name && { name }),
-        ...(description !== undefined && { description }),
-        ...(price && { price: parseFloat(price) }),
-        ...(promotionalPrice !== undefined && { promotionalPrice: promotionalPrice ? parseFloat(promotionalPrice) : null }),
-        ...(stock !== undefined && { stock: parseInt(stock) }),
-        ...(categoryId !== undefined && { categoryId: categoryId || null }),
-        ...(weight !== undefined && { weight: weight ? parseFloat(weight) : null }),
-        ...(height !== undefined && { height: height ? parseFloat(height) : null }),
-        ...(width !== undefined && { width: width ? parseFloat(width) : null }),
-        ...(length !== undefined && { length: length ? parseFloat(length) : null }),
-        ...(active !== undefined && { active }),
-      },
-    });
+    const updates: string[] = [];
+    const params: any[] = [];
+    let p = 1;
 
-    if (variations && Array.isArray(variations)) {
-      const existingVariations = await prisma.productVariation.findMany({
-        where: { productId: id },
-      });
-      
-      const existingIds = existingVariations.map(v => v.id);
-      const newIds = variations.filter(v => v.id).map(v => v.id);
-      
-      const toDelete = existingIds.filter(id => !newIds.includes(id));
-      if (toDelete.length > 0) {
-        await prisma.productVariation.deleteMany({
-          where: { id: { in: toDelete } },
-        });
-      }
-      
-      for (const variation of variations) {
-        if (variation.id) {
-          await prisma.productVariation.update({
-            where: { id: variation.id },
-            data: {
-              name: variation.name,
-              value: variation.value,
-              stock: variation.stock || 0,
-              price: variation.price ? parseFloat(variation.price) : null,
-            },
-          });
-        } else if (variation.name && variation.value) {
-          await prisma.productVariation.create({
-            data: {
-              productId: id,
-              name: variation.name,
-              value: variation.value,
-              stock: variation.stock || 0,
-              price: variation.price ? parseFloat(variation.price) : null,
-            },
-          });
-        }
-      }
+    if (name) {
+      updates.push(`name = $${p++}`);
+      params.push(name);
+    }
+    if (description !== undefined) {
+      updates.push(`description = $${p++}`);
+      params.push(description);
+    }
+    if (price) {
+      updates.push(`price = $${p++}`);
+      params.push(parseFloat(price));
+    }
+    if (promotionalPrice !== undefined) {
+      updates.push(`promotional_price = $${p++}`);
+      params.push(promotionalPrice ? parseFloat(promotionalPrice) : null);
+    }
+    if (stock !== undefined) {
+      updates.push(`stock = $${p++}`);
+      params.push(parseInt(stock));
+    }
+    if (categoryId !== undefined) {
+      updates.push(`category_id = $${p++}`);
+      params.push(categoryId || null);
+    }
+    if (weight !== undefined) {
+      updates.push(`weight = $${p++}`);
+      params.push(weight ? parseFloat(weight) : null);
+    }
+    if (height !== undefined) {
+      updates.push(`height = $${p++}`);
+      params.push(height ? parseFloat(height) : null);
+    }
+    if (width !== undefined) {
+      updates.push(`width = $${p++}`);
+      params.push(width ? parseFloat(width) : null);
+    }
+    if (length !== undefined) {
+      updates.push(`length = $${p++}`);
+      params.push(length ? parseFloat(length) : null);
+    }
+    if (active !== undefined) {
+      updates.push(`active = $${p++}`);
+      params.push(active);
     }
 
-    return NextResponse.json({
-      success: true,
-      product: {
-        id: product.id,
-        name: product.name,
-        slug: product.slug,
-      },
-    });
-  } catch (error) {
+    updates.push(`updated_at = NOW()`);
+    params.push(id);
+
+    if (updates.length > 1) {
+      await query(`UPDATE products SET ${updates.join(", ")} WHERE id = $${p}`, params);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
     console.error("Update product error:", error);
     return NextResponse.json({ error: "Erro ao atualizar produto" }, { status: 500 });
   }
@@ -293,10 +298,10 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "ID do produto é obrigatório" }, { status: 400 });
     }
 
-    await prisma.product.delete({ where: { id } });
+    await query(`DELETE FROM products WHERE id = $1`, [id]);
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Delete product error:", error);
     return NextResponse.json({ error: "Erro ao excluir produto" }, { status: 500 });
   }
