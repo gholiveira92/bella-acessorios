@@ -31,6 +31,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Senha incorreta");
         }
 
+        if (!user.emailVerified) {
+          throw new Error("CONFIRM_EMAIL_REQUIRED");
+        }
+
         return {
           id: user.id,
           name: user.name,

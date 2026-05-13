@@ -3,7 +3,8 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { FiSearch, FiFilter } from "react-icons/fi";
+import { FiSearch, FiChevronRight } from "react-icons/fi";
+import ProductCard from "@/components/ui/ProductCard";
 
 interface Product {
   id: string;
@@ -13,12 +14,6 @@ interface Product {
   promotionalPrice: number | null;
   image: string;
   category: string;
-}
-
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
 }
 
 const categories = [
@@ -45,6 +40,8 @@ function CatalogContent() {
   const [sort, setSort] = useState("newest");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const activeCategory = categories.find(c => c.slug === category);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -81,38 +78,54 @@ function CatalogContent() {
   }, [category, search, sort]);
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-serif text-rose-800 mb-8">Catálogo</h1>
+    <div className="min-h-screen bg-brand-bg">
+      <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
+        
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-2 text-xs md:text-sm text-text-muted mb-6">
+          <Link href="/" className="hover:text-brand-gold transition-colors">Home</Link>
+          <FiChevronRight size={12} />
+          <span className="text-brand-gold-dark font-medium">
+            {activeCategory?.name || "Catálogo"}
+          </span>
+        </nav>
 
+        {/* Category Navigation - Horizontal Bar */}
+        <div className="mb-8">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setCategory(cat.slug)}
+                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-sans transition-all duration-300 whitespace-nowrap ${
+                  category === cat.slug
+                    ? "bg-brand-gold text-white shadow-md"
+                    : "bg-white text-text-secondary hover:bg-brand-bg-light hover:text-brand-gold border border-brand-bg-dark"
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Search and Sort Row */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" />
             <input
               type="text"
               placeholder="Buscar produtos..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+              className="w-full pl-12 pr-4 py-3 bg-white border border-brand-bg-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold font-sans text-sm"
             />
           </div>
 
           <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
-          >
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.slug}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-
-          <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+            className="px-4 py-3 bg-white border border-brand-bg-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold font-sans text-sm text-text-secondary"
           >
             {sortOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -122,55 +135,47 @@ function CatalogContent() {
           </select>
         </div>
 
+        {/* Products Count */}
+        <p className="text-sm text-text-muted mb-6">
+          {loading ? "Carregando..." : `${products.length} produto${products.length !== 1 ? 's' : ''} encontrado${products.length !== 1 ? 's' : ''}`}
+        </p>
+
+        {/* Loading State */}
         {loading ? (
           <div className="text-center py-16">
-            <div className="inline-block w-8 h-8 border-4 border-rose-600 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-gray-500 mt-4">Carregando produtos...</p>
+            <div className="inline-block w-8 h-8 border-4 border-brand-gold border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-text-muted mt-4 text-sm">Carregando produtos...</p>
           </div>
         ) : products.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-gray-500">Nenhum produto encontrado.</p>
+          <div className="text-center py-16 bg-white rounded-lg">
+            <p className="text-text-muted">Nenhum produto encontrado.</p>
+            <button 
+              onClick={() => {setCategory("todos"); setSearch("");}}
+              className="mt-4 text-brand-gold hover:underline text-sm"
+            >
+              Ver todos os produtos
+            </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          /* Product Grid */
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {products.map((product) => (
-              <Link key={product.id} href={`/product/${product.slug}`} className="group">
-                <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                  <div className="aspect-square overflow-hidden">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-medium text-gray-800 mb-2 group-hover:text-rose-600 transition-colors">
-                      {product.name}
-                    </h3>
-                    <div className="flex items-center gap-2">
-                      {product.promotionalPrice ? (
-                        <>
-                          <span className="text-rose-600 font-semibold">
-                            R$ {product.promotionalPrice.toFixed(2).replace(".", ",")}
-                          </span>
-                          <span className="text-gray-400 line-through text-sm">
-                            R$ {product.price.toFixed(2).replace(".", ",")}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-rose-600 font-semibold">
-                          R$ {product.price.toFixed(2).replace(".", ",")}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </Link>
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         )}
       </div>
+
+      {/* CSS for hidden scrollbar */}
+      <style jsx>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 }
@@ -178,8 +183,8 @@ function CatalogContent() {
 export default function CatalogPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="inline-block w-8 h-8 border-4 border-rose-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <div className="inline-block w-8 h-8 border-4 border-brand-gold border-t-transparent rounded-full animate-spin"></div>
       </div>
     }>
       <CatalogContent />

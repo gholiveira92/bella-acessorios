@@ -75,34 +75,39 @@ export default function MyOrdersPage() {
     }
 
     if (status === "authenticated") {
-      setTimeout(() => {
-        setOrders(mockOrders);
-        setLoading(false);
-      }, 500);
+      fetch("/api/orders")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.orders) {
+            setOrders(data.orders);
+          }
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false));
     }
   }, [status]);
 
   if (loading || status === "loading") {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="inline-block w-8 h-8 border-4 border-rose-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-brand-bg flex items-center justify-center">
+        <div className="inline-block w-8 h-8 border-4 border-brand-gold border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-brand-bg">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-serif text-rose-800 mb-8">Meus Pedidos</h1>
+        <h1 className="text-3xl font-serif text-text-primary mb-8">Meus Pedidos</h1>
 
         {orders.length === 0 ? (
-          <div className="text-center py-16">
+          <div className="text-center py-16 bg-white rounded-lg border border-brand-bg-dark">
             <FiPackage className="mx-auto text-6xl text-gray-300 mb-4" />
-            <h2 className="text-xl font-medium text-gray-800 mb-2">Nenhum pedido encontrado</h2>
-            <p className="text-gray-500 mb-8">Faça seu primeiro pedido em nossa loja!</p>
+            <h2 className="text-xl font-medium text-text-primary mb-2">Nenhum pedido encontrado</h2>
+            <p className="text-text-muted mb-8">Faça seu primeiro pedido em nossa loja!</p>
             <Link
               href="/catalog"
-              className="inline-block bg-rose-600 text-white px-6 py-3 rounded-full hover:bg-rose-700 transition-colors"
+              className="inline-block bg-brand-gold text-white px-6 py-3 rounded-full hover:opacity-90 transition-opacity"
             >
               Ver Catálogo
             </Link>
@@ -113,21 +118,21 @@ export default function MyOrdersPage() {
               const statusInfo = statusConfig[order.status] || { label: order.status, color: "text-gray-600 bg-gray-50", icon: <FiPackage /> };
 
               return (
-                <div key={order.id} className="border border-gray-200 rounded-lg p-6">
+                <div key={order.id} className="border border-brand-bg-dark bg-white rounded-lg p-6">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                     <div>
-                      <p className="text-sm text-gray-500">Pedido</p>
-                      <p className="font-semibold text-gray-800">{order.orderNumber}</p>
+                      <p className="text-sm text-text-muted">Pedido</p>
+                      <p className="font-semibold text-text-primary">{order.orderNumber}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500">Data</p>
-                      <p className="text-gray-800">
+                      <p className="text-sm text-text-muted">Data</p>
+                      <p className="text-text-primary">
                         {new Date(order.createdAt).toLocaleDateString("pt-BR")}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-500">Total</p>
-                      <p className="font-semibold text-rose-600">
+                      <p className="text-sm text-text-muted">Total</p>
+                      <p className="font-semibold text-brand-gold-dark">
                         R$ {order.total.toFixed(2).replace(".", ",")}
                       </p>
                     </div>
@@ -137,23 +142,23 @@ export default function MyOrdersPage() {
                     </div>
                   </div>
 
-                  <div className="border-t pt-4">
-                    <p className="text-sm text-gray-500 mb-2">Itens:</p>
+                  <div className="border-t border-brand-bg-dark pt-4">
+                    <p className="text-sm text-text-muted mb-2">Itens:</p>
                     <div className="space-y-1">
                       {order.items.map((item, idx) => (
-                        <p key={idx} className="text-gray-700 text-sm">
+                        <p key={idx} className="text-text-secondary text-sm">
                           {item.name} x{item.quantity}
                         </p>
                       ))}
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-4 border-t flex gap-4">
-                    <button className="text-rose-600 hover:underline text-sm">
+                  <div className="mt-4 pt-4 border-t border-brand-bg-dark flex gap-4">
+                    <button className="text-brand-gold hover:underline text-sm">
                       Ver Detalhes
                     </button>
                     {order.status === "ENVIADO" && (
-                      <button className="text-rose-600 hover:underline text-sm">
+                      <button className="text-brand-gold hover:underline text-sm">
                         Rastrear
                       </button>
                     )}

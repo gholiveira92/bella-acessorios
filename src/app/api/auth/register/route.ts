@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import prisma from "@/lib/db";
 import { validateCPF } from "@/lib/utils";
+import { sendConfirmationEmail } from "@/lib/email";
 
 export async function POST(request: Request) {
   try {
@@ -45,6 +47,7 @@ export async function POST(request: Request) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const confirmationToken = crypto.randomBytes(32).toString("hex");
 
     const user = await prisma.user.create({
       data: {
@@ -54,8 +57,15 @@ export async function POST(request: Request) {
         cpf,
         gender,
         phone,
+        confirmationToken,
       },
     });
+
+    try {
+      await sendConfirmationEmail(email, name, confirmationToken);
+    } catch (emailError) {
+      console.error("Error sending confirmation email:", emailError);
+    }
 
     return NextResponse.json({
       user: {
@@ -63,11 +73,12 @@ export async function POST(request: Request) {
         name: user.name,
         email: user.email,
       },
+      message: "Conta criada! Verifique seu e-mail para confirmar.",
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Register error:", error);
     return NextResponse.json(
-      { error: "Erro ao criar conta" },
+      { error: error.message || "Erro ao criar conta" },
       { status: 500 }
     );
   }

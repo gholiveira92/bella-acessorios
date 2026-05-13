@@ -19,11 +19,6 @@ interface Address {
   state: string;
 }
 
-const shippingOptions = [
-  { id: "pac", name: "PAC", price: 15.9, deadline: 5 },
-  { id: "sedex", name: "SEDEX", price: 25.9, deadline: 2 },
-];
-
 export default function CheckoutPage() {
   const { data: session } = useSession();
   const router = useRouter();
@@ -42,10 +37,64 @@ export default function CheckoutPage() {
     state: "",
   });
 
-  const [selectedShipping, setSelectedShipping] = useState(shippingOptions[0]);
+  const [selectedShipping, setSelectedShipping] = useState<{ id: string; name: string; price: number; deadline: number } | null>(null);
+  const [shippingOptions, setShippingOptions] = useState<{ id: string; name: string; price: number; deadline: number; company?: string }[]>([]);
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingError, setShippingError] = useState("");
+
+  const fetchShippingOptions = async (cep: string) => {
+    if (cep.length !== 8) return;
+    
+    setShippingLoading(true);
+    setShippingError("");
+    
+    try {
+      const res = await fetch("/api/shipping/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          cep,
+          weight: 0.5,
+          width: 10,
+          height: 10,
+          length: 10,
+          subtotal 
+        }),
+      });
+      
+      const data = await res.json();
+      
+      if (data.quotes && data.quotes.length > 0) {
+        const options = data.quotes.map((q: any) => ({
+          id: q.id,
+          name: q.name,
+          price: q.price,
+          deadline: q.deliveryTime,
+          company: q.company,
+        }));
+        setShippingOptions(options);
+        setSelectedShipping(options[0]);
+      } else {
+        setShippingOptions([
+          { id: "pac", name: "PAC", price: 15.9, deadline: 7 },
+          { id: "sedex", name: "SEDEX", price: 25.9, deadline: 3 },
+        ]);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar fretes:", error);
+      setShippingError("Erro ao calcular frete");
+      setShippingOptions([
+        { id: "pac", name: "PAC", price: 15.9, deadline: 7 },
+        { id: "sedex", name: "SEDEX", price: 25.9, deadline: 3 },
+      ]);
+    } finally {
+      setShippingLoading(false);
+    }
+  };
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "card">("pix");
   const [orderCreated, setOrderCreated] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
+  const [pixData, setPixData] = useState<{ qrCode: string; copyPaste: string } | null>(null);
 
   const shippingCost = selectedShipping?.price || 0;
   const total = subtotal + shippingCost;
@@ -92,15 +141,56 @@ export default function CheckoutPage() {
 
   const handleCreateOrder = async () => {
     setLoading(true);
-    
-    setTimeout(() => {
-      const orderNum = "BELLA-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-      setOrderNumber(orderNum);
+
+    try {
+      const orderItems = items.map((item) => ({
+        productId: item.productId,
+        name: item.name,
+        price: item.promotionalPrice || item.price,
+        quantity: item.quantity,
+      }));
+
+      const res = await fetch("/api/payments/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: orderItems,
+          address,
+          shippingOption: selectedShipping,
+          paymentMethod,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Erro ao criar pedido");
+        setLoading(false);
+        return;
+      }
+
+      setOrderNumber(data.orderNumber);
+      if (paymentMethod === "pix" && data.pixQrCode) {
+        setPixData({
+          qrCode: data.pixQrCode,
+          copyPaste: data.pixCopyPaste || "",
+        });
+      }
       setOrderCreated(true);
       clearCart();
+    } catch (error) {
+      console.error("Error creating order:", error);
+      alert("Erro ao processar pedido");
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
+
+  useEffect(() => {
+    if (!session) {
+      router.push("/auth/login?callbackUrl=/checkout");
+    }
+  }, [session, router]);
 
   if (orderCreated) {
     return (
@@ -119,24 +209,35 @@ export default function CheckoutPage() {
             <div className="bg-gray-50 p-6 rounded-lg mb-8">
               <h3 className="font-semibold text-gray-800 mb-4">Pagamento via PIX</h3>
               <p className="text-sm text-gray-600 mb-4">
-                O código PIX foi enviado para seu e-mail. Copie o código abaixo:
+                O código PIX foi enviado para seu e-mail. Escaneie o QR Code ou copie o código abaixo:
               </p>
-              <div className="bg-white p-4 rounded border text-sm font-mono">
-                00020126360014br.gov.bcb.pix0114+5511999999999995204000053039865405.005802BR5925BELLA ACESSORIOS LTDA6009SAO PAULO62070503***6304ABCD
-              </div>
+              {pixData?.qrCode && (
+                <div className="mb-4">
+                  <img 
+                    src={`data:image/png;base64,${pixData.qrCode}`} 
+                    alt="QR Code PIX" 
+                    className="w-48 h-48 mx-auto"
+                  />
+                </div>
+              )}
+              {pixData?.copyPaste && (
+                <div className="bg-white p-4 rounded border text-sm font-mono break-all">
+                  {pixData.copyPaste}
+                </div>
+              )}
             </div>
           )}
 
           <div className="flex flex-col gap-4">
             <Link
               href="/my-orders"
-              className="bg-rose-600 text-white py-3 px-6 rounded-full hover:bg-rose-700 transition-colors"
+              className="bg-brand-gold text-white py-3 px-6 rounded-full hover:bg-brand-gold-dark transition-colors"
             >
               Ver Meus Pedidos
             </Link>
             <Link
               href="/catalog"
-              className="text-rose-600 hover:underline"
+              className="text-brand-gold hover:underline"
             >
               Continuar Comprando
             </Link>
@@ -150,25 +251,25 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-white">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center gap-4 mb-8">
-          <Link href="/cart" className="text-gray-500 hover:text-rose-600">
+          <Link href="/cart" className="text-gray-500 hover:text-brand-gold">
             <FiArrowLeft size={20} />
           </Link>
           <h1 className="text-3xl font-serif text-rose-800">Finalizar Compra</h1>
         </div>
 
         <div className="flex items-center justify-center gap-4 mb-8">
-          <div className={`flex items-center gap-2 ${step === "address" ? "text-rose-600" : "text-gray-400"}`}>
-            <div className="w-8 h-8 rounded-full bg-rose-600 text-white flex items-center justify-center text-sm">1</div>
+          <div className={`flex items-center gap-2 ${step === "address" ? "text-brand-gold" : "text-gray-400"}`}>
+            <div className="w-8 h-8 rounded-full bg-brand-gold text-white flex items-center justify-center text-sm">1</div>
             <span className="text-sm">Endereço</span>
           </div>
           <div className="w-8 h-px bg-gray-300"></div>
-          <div className={`flex items-center gap-2 ${step === "shipping" ? "text-rose-600" : "text-gray-400"}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${step === "shipping" || step === "payment" || step === "review" ? "bg-rose-600 text-white" : "bg-gray-300 text-gray-600"}`}>2</div>
+          <div className={`flex items-center gap-2 ${step === "shipping" ? "text-brand-gold" : "text-gray-400"}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${step === "shipping" || step === "payment" || step === "review" ? "bg-brand-gold text-white" : "bg-gray-300 text-gray-600"}`}>2</div>
             <span className="text-sm">Frete</span>
           </div>
           <div className="w-8 h-px bg-gray-300"></div>
-          <div className={`flex items-center gap-2 ${step === "payment" ? "text-rose-600" : "text-gray-400"}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${step === "payment" || step === "review" ? "bg-rose-600 text-white" : "bg-gray-300 text-gray-600"}`}>3</div>
+          <div className={`flex items-center gap-2 ${step === "payment" ? "text-brand-gold" : "text-gray-400"}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${step === "payment" || step === "review" ? "bg-brand-gold text-white" : "bg-gray-300 text-gray-600"}`}>3</div>
             <span className="text-sm">Pagamento</span>
           </div>
         </div>
@@ -182,14 +283,27 @@ export default function CheckoutPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">CEP *</label>
-                    <input
-                      type="text"
-                      value={address.cep}
-                      onChange={(e) => handleCepChange(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
-                      placeholder="00000000"
-                      maxLength={8}
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={address.cep}
+                        onChange={(e) => {
+                          handleCepChange(e.target.value);
+                          const cleanCep = e.target.value.replace(/\D/g, "");
+                          if (cleanCep.length === 8) {
+                            fetchShippingOptions(cleanCep);
+                          }
+                        }}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-bg-light0"
+                        placeholder="00000000"
+                        maxLength={8}
+                      />
+                      {shippingLoading && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <div className="w-5 h-5 border-2 border-brand-gold border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div>
@@ -198,7 +312,7 @@ export default function CheckoutPage() {
                       type="text"
                       value={address.street}
                       onChange={(e) => setAddress((prev) => ({ ...prev, street: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-bg-light0"
                       placeholder="Rua/Avenida"
                     />
                   </div>
@@ -210,7 +324,7 @@ export default function CheckoutPage() {
                         type="text"
                         value={address.number}
                         onChange={(e) => setAddress((prev) => ({ ...prev, number: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-bg-light0"
                         placeholder="123"
                       />
                     </div>
@@ -220,7 +334,7 @@ export default function CheckoutPage() {
                         type="text"
                         value={address.complement}
                         onChange={(e) => setAddress((prev) => ({ ...prev, complement: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-bg-light0"
                         placeholder="Apto/Bloco"
                       />
                     </div>
@@ -232,7 +346,7 @@ export default function CheckoutPage() {
                       type="text"
                       value={address.neighborhood}
                       onChange={(e) => setAddress((prev) => ({ ...prev, neighborhood: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-bg-light0"
                       placeholder="Bairro"
                     />
                   </div>
@@ -244,7 +358,7 @@ export default function CheckoutPage() {
                         type="text"
                         value={address.city}
                         onChange={(e) => setAddress((prev) => ({ ...prev, city: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-bg-light0"
                         placeholder="Cidade"
                       />
                     </div>
@@ -254,7 +368,7 @@ export default function CheckoutPage() {
                         type="text"
                         value={address.state}
                         onChange={(e) => setAddress((prev) => ({ ...prev, state: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-bg-light0"
                         placeholder="UF"
                         maxLength={2}
                       />
@@ -264,7 +378,7 @@ export default function CheckoutPage() {
                   <button
                     onClick={() => validateAddress() && setStep("shipping")}
                     disabled={!validateAddress()}
-                    className="w-full bg-rose-600 text-white py-3 rounded-lg hover:bg-rose-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-brand-gold text-white py-3 rounded-lg hover:bg-brand-gold-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Continuar para Frete
                   </button>
@@ -284,7 +398,7 @@ export default function CheckoutPage() {
                       key={option.id}
                       className={`block p-4 border rounded-lg cursor-pointer transition-colors ${
                         selectedShipping?.id === option.id
-                          ? "border-rose-600 bg-rose-50"
+                          ? "border-brand-gold bg-brand-bg-light"
                           : "border-gray-200 hover:border-gray-300"
                       }`}
                     >
@@ -295,14 +409,14 @@ export default function CheckoutPage() {
                             name="shipping"
                             checked={selectedShipping?.id === option.id}
                             onChange={() => setSelectedShipping(option)}
-                            className="text-rose-600"
+                            className="text-brand-gold"
                           />
                           <div>
                             <p className="font-medium text-gray-800">{option.name}</p>
                             <p className="text-sm text-gray-500">{option.deadline} úteis</p>
                           </div>
                         </div>
-                        <span className="font-semibold text-rose-600">
+                        <span className="font-semibold text-brand-gold">
                           R$ {option.price.toFixed(2).replace(".", ",")}
                         </span>
                       </div>
@@ -319,7 +433,7 @@ export default function CheckoutPage() {
                   </button>
                   <button
                     onClick={() => setStep("payment")}
-                    className="flex-1 bg-rose-600 text-white py-3 rounded-lg hover:bg-rose-700 transition-colors"
+                    className="flex-1 bg-brand-gold text-white py-3 rounded-lg hover:bg-brand-gold-dark transition-colors"
                   >
                     Continuar para Pagamento
                   </button>
@@ -337,7 +451,7 @@ export default function CheckoutPage() {
                   <label
                     className={`block p-4 border rounded-lg cursor-pointer transition-colors ${
                       paymentMethod === "pix"
-                        ? "border-rose-600 bg-rose-50"
+                        ? "border-brand-gold bg-brand-bg-light"
                         : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
@@ -347,7 +461,7 @@ export default function CheckoutPage() {
                         name="payment"
                         checked={paymentMethod === "pix"}
                         onChange={() => setPaymentMethod("pix")}
-                        className="text-rose-600"
+                        className="text-brand-gold"
                       />
                       <span className="font-medium text-gray-800">PIX</span>
                     </div>
@@ -356,7 +470,7 @@ export default function CheckoutPage() {
                   <label
                     className={`block p-4 border rounded-lg cursor-pointer transition-colors ${
                       paymentMethod === "card"
-                        ? "border-rose-600 bg-rose-50"
+                        ? "border-brand-gold bg-brand-bg-light"
                         : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
@@ -366,7 +480,7 @@ export default function CheckoutPage() {
                         name="payment"
                         checked={paymentMethod === "card"}
                         onChange={() => setPaymentMethod("card")}
-                        className="text-rose-600"
+                        className="text-brand-gold"
                       />
                       <span className="font-medium text-gray-800">Cartão de Crédito</span>
                     </div>
@@ -409,7 +523,7 @@ export default function CheckoutPage() {
                   </button>
                   <button
                     onClick={() => setStep("review")}
-                    className="flex-1 bg-rose-600 text-white py-3 rounded-lg hover:bg-rose-700 transition-colors"
+                    className="flex-1 bg-brand-gold text-white py-3 rounded-lg hover:bg-brand-gold-dark transition-colors"
                   >
                     Revisar Pedido
                   </button>
@@ -471,7 +585,7 @@ export default function CheckoutPage() {
                   <button
                     onClick={handleCreateOrder}
                     disabled={loading}
-                    className="flex-1 bg-rose-600 text-white py-3 rounded-lg hover:bg-rose-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-1 bg-brand-gold text-white py-3 rounded-lg hover:bg-brand-gold-dark transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {loading ? (
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -501,7 +615,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="border-t pt-2 flex justify-between font-semibold text-gray-800">
                   <span>Total</span>
-                  <span className="text-rose-600 text-xl">R$ {total.toFixed(2).replace(".", ",")}</span>
+                  <span className="text-brand-gold text-xl">R$ {total.toFixed(2).replace(".", ",")}</span>
                 </div>
               </div>
             </div>

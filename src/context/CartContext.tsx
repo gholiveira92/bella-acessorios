@@ -10,6 +10,7 @@ export interface CartItem {
   promotionalPrice?: number;
   quantity: number;
   image: string;
+  variation?: Record<string, string>;
 }
 
 interface CartContextType {

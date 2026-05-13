@@ -3,16 +3,16 @@
 @theme inline {
   --font-sans: var(--font-sans);
   --font-serif: var(--font-serif);
-  --color-rose-50: #fdf2f8;
-  --color-rose-100: #fce7f3;
-  --color-rose-200: #fbcfe8;
-  --color-rose-300: #f9a8d4;
-  --color-rose-400: #f472b6;
-  --color-rose-500: #ec4899;
-  --color-rose-600: #db2777;
-  --color-rose-700: #be185d;
-  --color-rose-800: #9d174d;
-  --color-rose-900: #831843;
+
+  --color-brand-gold: #C8A269;
+  --color-brand-gold-light: #D4B97A;
+  --color-brand-gold-dark: #A88A52;
+  --color-brand-bg: #F7F2EA;
+  --color-brand-bg-light: #FDFBF7;
+  --color-brand-bg-dark: #EFE7DD;
+  --color-text-primary: #333333;
+  --color-text-secondary: #6E6259;
+  --color-text-muted: #9A8A82;
 }
 
 * {
@@ -21,6 +21,8 @@
 
 body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  background-color: var(--color-brand-bg);
+  color: var(--color-text-primary);
 }
 
 .font-serif {
@@ -34,4 +36,9 @@ a {
 img {
   max-width: 100%;
   height: auto;
+}
+
+::selection {
+  background-color: var(--color-brand-gold);
+  color: white;
 }

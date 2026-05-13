@@ -77,3 +77,166 @@
  GET / 200 in 54ms (next.js: 751µs, application-code: 54ms)
  GET / 200 in 41ms (next.js: 757µs, application-code: 40ms)
  GET / 200 in 27ms (next.js: 1373µs, application-code: 26ms)
+✓ Compiled in 261ms
+ GET / 200 in 256ms (next.js: 97ms, application-code: 159ms)
+ GET / 200 in 20ms (next.js: 2ms, application-code: 18ms)
+ GET / 200 in 127ms (next.js: 1999µs, application-code: 125ms)
+ GET /api/auth/session 200 in 45ms (next.js: 37ms, application-code: 7ms)
+✓ Compiled in 54ms
+⨯ ReferenceError: IoLogoWhatsapp is not defined
+    at Home (src/app/page.tsx:61:20)
+  59 |                   className="inline-flex items-center gap-2 bg-rose-500/20 text-white bord...
+  60 |                 >
+> 61 |                   <IoLogoWhatsapp /> Falar no WhatsApp
+     |                    ^
+  62 |                 </a>
+  63 |               </div>
+  64 |             </div> {
+  digest: '95345046'
+}
+ GET / 200 in 33ms (next.js: 7ms, application-code: 26ms)
+ GET / 200 in 241ms (next.js: 98ms, application-code: 142ms)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+✓ Compiled in 0ms
+ GET /api/auth/session 200 in 44ms (next.js: 35ms, application-code: 9ms)
+ GET / 200 in 28ms (next.js: 4ms, application-code: 24ms)
+ GET / 200 in 27ms (next.js: 4ms, application-code: 23ms)
+ GET / 200 in 23ms (next.js: 5ms, application-code: 18ms)
+✓ Compiled in 73ms
+ GET / 200 in 66ms (next.js: 3ms, application-code: 62ms)
+ GET / 200 in 44ms (next.js: 912µs, application-code: 43ms)
+ GET / 200 in 29ms (next.js: 1086µs, application-code: 28ms)
+ GET / 200 in 17ms (next.js: 833µs, application-code: 16ms)
+✓ Compiled in 0ms
+ GET / 200 in 491ms (next.js: 254ms, application-code: 237ms)
+ GET / 200 in 545ms (next.js: 163ms, application-code: 382ms)
+ GET / 200 in 156ms (next.js: 1611µs, application-code: 155ms)
+ GET / 200 in 50ms (next.js: 965µs, application-code: 49ms)
+ GET / 200 in 123ms (next.js: 3ms, application-code: 119ms)
+ GET / 200 in 145ms (next.js: 1641µs, application-code: 143ms)
+ GET / 200 in 143ms (next.js: 26ms, application-code: 117ms)
+ GET / 200 in 58ms (next.js: 878µs, application-code: 57ms)
+ GET /api/auth/session 200 in 47ms (next.js: 40ms, application-code: 7ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 68ms (next.js: 2ms, application-code: 65ms)
+ GET / 200 in 45ms (next.js: 995µs, application-code: 44ms)
+ GET / 200 in 30ms (next.js: 1296µs, application-code: 29ms)
+ GET / 200 in 15ms (next.js: 882µs, application-code: 14ms)
+✓ Compiled in 41ms
+ GET / 200 in 87ms (next.js: 9ms, application-code: 78ms)
+ GET / 200 in 45ms (next.js: 856µs, application-code: 44ms)
+ GET / 200 in 31ms (next.js: 742µs, application-code: 30ms)
+ GET / 200 in 16ms (next.js: 756µs, application-code: 15ms)
+ GET / 200 in 61ms (next.js: 1874µs, application-code: 59ms)
+ GET / 200 in 43ms (next.js: 889µs, application-code: 42ms)
+ GET / 200 in 28ms (next.js: 794µs, application-code: 28ms)
+ GET / 200 in 15ms (next.js: 707µs, application-code: 14ms)
+✓ Compiled in 40ms
+✓ Compiled in 78ms
+✓ Compiled in 844ms
+ GET / 200 in 296ms (next.js: 95ms, application-code: 201ms)
+ GET / 200 in 32ms (next.js: 1627µs, application-code: 30ms)
+ GET / 200 in 15ms (next.js: 890µs, application-code: 14ms)
+ GET / 200 in 177ms (next.js: 1679µs, application-code: 175ms)
+ GET /api/auth/session 200 in 43ms (next.js: 34ms, application-code: 9ms)
+✓ Compiled in 27ms
+✓ Compiled in 29ms
+ GET / 200 in 27ms (next.js: 4ms, application-code: 24ms)
+ GET / 200 in 319ms (next.js: 93ms, application-code: 226ms)
+ GET / 200 in 70ms (next.js: 5ms, application-code: 65ms)
+ GET / 200 in 43ms (next.js: 1451µs, application-code: 42ms)
+ GET / 200 in 206ms (next.js: 977µs, application-code: 205ms)
+ GET /api/auth/session 200 in 43ms (next.js: 35ms, application-code: 9ms)
+✓ Compiled in 40ms
+✓ Compiled in 18ms
+✓ Compiled in 19ms
+ GET / 200 in 18ms (next.js: 3ms, application-code: 16ms)
+✓ Compiled in 46ms
+✓ Compiled in 684ms
+✓ Compiled in 17ms
+✓ Compiled in 18ms
+✓ Compiled in 18ms
+✓ Compiled in 20ms
+✓ Compiled in 18ms
+✓ Compiled in 20ms
+✓ Compiled in 34ms
+✓ Compiled in 65ms
+ GET / 200 in 733ms (next.js: 334ms, application-code: 399ms)
+ GET /api/auth/session 200 in 83ms (next.js: 70ms, application-code: 12ms)
+ GET / 200 in 66ms (next.js: 4ms, application-code: 62ms)
+ GET /api/auth/session 200 in 9ms (next.js: 2ms, application-code: 7ms)
+ GET /catalog?category=aneis 200 in 57ms (next.js: 32ms, application-code: 25ms)
+ GET /api/products?category=aneis&sort=newest 200 in 39ms (next.js: 34ms, application-code: 5ms)
+ GET /product/anel-casulo-dourado 200 in 57ms (next.js: 36ms, application-code: 20ms)
+ GET /api/products/anel-casulo-dourado 200 in 38ms (next.js: 35ms, application-code: 3ms)
+ GET /api/products/anel-casulo-dourado 200 in 5ms (next.js: 1838µs, application-code: 3ms)
+ GET /catalog?category=brincos 200 in 39ms (next.js: 13ms, application-code: 27ms)
+ GET /api/products?category=brincos&sort=newest 200 in 14ms (next.js: 4ms, application-code: 10ms)
+ GET / 200 in 54ms (next.js: 6ms, application-code: 48ms)
+✓ Compiled in 81ms
+ GET / 200 in 110ms (next.js: 22ms, application-code: 88ms)
+ GET /api/auth/session 200 in 14ms (next.js: 4ms, application-code: 10ms)
+ GET /api/auth/session 200 in 7ms (next.js: 844µs, application-code: 6ms)
+ GET / 200 in 13ms (next.js: 4ms, application-code: 9ms)
+ GET / 200 in 48ms (next.js: 2ms, application-code: 45ms)
+ GET /catalog 200 in 29ms (next.js: 9ms, application-code: 20ms)
+ GET /api/products?sort=newest 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /product/anel-casulo-dourado 200 in 27ms (next.js: 12ms, application-code: 15ms)
+ GET /api/products/anel-casulo-dourado 200 in 6ms (next.js: 3ms, application-code: 3ms)
+ GET /api/products/anel-casulo-dourado 200 in 8ms (next.js: 1855µs, application-code: 6ms)
+ GET / 200 in 39ms (next.js: 4ms, application-code: 34ms)
+✓ Compiled in 22ms
+✓ Compiled in 44ms
+✓ Compiled in 55ms
+✓ Compiled in 73ms
+✓ Compiled in 149ms
+✓ Compiled in 50ms
+✓ Compiled in 68ms
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+  Reload env: .env
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].user.upsert()` invocation in
+/Users/guilhermehenriquedeoliveira/Documents/site-bella-acessorios/bella-acessorios/.next/dev/server/chunks/[root-of-the-server]__0mj1u18._.js:92:159
+
+  89 async function POST() {
+  90     try {
+  91         const passwordHash = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$bcryptjs$2f$index$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].hash("121924Ip*&", 10);
+→ 92         const user = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].user.upsert(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "42704", message: "type \"public.Gender\" does not exist", severity: "ERROR", detail: None, column: None, hint: None }), transient: false })
+ POST /api/admin/create-admin 500 in 2.3s (next.js: 584ms, application-code: 1667ms)
+ POST /api/admin/init-db 405 in 187ms (next.js: 178ms, application-code: 9ms)
+prisma:error 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].user.upsert()` invocation in
+/Users/guilhermehenriquedeoliveira/Documents/site-bella-acessorios/bella-acessorios/.next/dev/server/chunks/[root-of-the-server]__0mj1u18._.js:92:159
+
+  89 async function POST() {
+  90     try {
+  91         const passwordHash = await __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$bcryptjs$2f$index$2e$js__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].hash("121924Ip*&", 10);
+→ 92         const user = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].user.upsert(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "42704", message: "type \"public.Gender\" does not exist", severity: "ERROR", detail: None, column: None, hint: None }), transient: false })
+ POST /api/admin/create-admin 500 in 416ms (next.js: 1654µs, application-code: 414ms)
+[?25h

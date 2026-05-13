@@ -8,20 +8,22 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  cpf          String   @unique
-  gender       String
-  phone        String
-  role         String   @default("CLIENT")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id               String    @id @default(cuid())
+  name             String
+  email            String    @unique
+  passwordHash     String    @map("password_hash")
+  cpf              String    @unique
+  gender           String
+  phone            String
+  role             String    @default("CLIENT")
+  emailVerified    DateTime? @map("email_verified")
+  confirmationToken String?  @map("confirmation_token")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  addresses    Address[]
-  orders       Order[]
-  cart         Cart?
+  addresses        Address[]
+  orders           Order[]
+  cart             Cart?
 
   @@map("users")
 }
@@ -188,6 +190,7 @@ model Payment {
   transactionId String?  @map("transaction_id")
   pixQrCode     String?  @map("pix_qr_code")
   pixCopyPaste  String?  @map("pix_copy_paste")
+  webhookToken  String?  @map("webhook_token")
   installment   Int?     @default(1)
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -195,4 +198,16 @@ model Payment {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("payments")
+}
+
+model RateLimitRecord {
+  id         String   @id @default(cuid())
+  identifier String   @map("identifier")
+  action     String   @map("action")
+  attempts   Int      @default(0)
+  blocked    Boolean  @default(false)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("rate_limit_records")
+  @@index([identifier, action])
 }

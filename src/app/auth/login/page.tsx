@@ -25,7 +25,11 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("E-mail ou senha incorretos");
+        if (result.error.includes("CONFIRM_EMAIL_REQUIRED")) {
+          setError("Você precisa confirmar seu e-mail antes de fazer login. Verifique sua caixa de entrada.");
+        } else {
+          setError("E-mail ou senha incorretos");
+        }
       } else {
         router.push("/");
         router.refresh();
@@ -38,12 +42,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-rose-50 flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-brand-bg flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
+        <div className="bg-white rounded-2xl shadow-lg p-8 border border-brand-bg-dark">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-serif text-rose-800">Entrar</h1>
-            <p className="text-gray-500 mt-2">Faça login para continuar</p>
+            <h1 className="text-2xl font-serif text-text-primary">Entrar</h1>
+            <p className="text-text-muted mt-2">Faça login para continuar</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -54,28 +58,28 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
                 E-mail
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full px-4 py-3 border border-brand-bg-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold"
                 placeholder="seu@email.com"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
                 Senha
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full px-4 py-3 border border-brand-bg-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold"
                 placeholder="••••••••"
                 required
               />
@@ -84,16 +88,16 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-rose-600 text-white py-3 rounded-lg hover:bg-rose-700 transition-colors disabled:opacity-50"
+              className="w-full bg-brand-gold text-white py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {loading ? "Entrando..." : "Entrar"}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-gray-600">
+            <p className="text-text-secondary">
               Não tem conta?{" "}
-              <Link href="/auth/register" className="text-rose-600 hover:underline">
+              <Link href="/auth/register" className="text-brand-gold hover:underline">
                 Cadastrar
               </Link>
             </p>

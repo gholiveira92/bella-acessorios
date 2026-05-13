@@ -1,21 +1,24 @@
 export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
-import { Playfair_Display, Inter } from "next/font/google";
+import { Cormorant_Garamond, Lato } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import AuthProvider from "@/components/providers/AuthProvider";
 import { CartProvider } from "@/context/CartContext";
+import FloatingWhatsApp from "@/components/ui/FloatingWhatsApp";
 
-const playfair = Playfair_Display({
+const cormorant = Cormorant_Garamond({
   variable: "--font-serif",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const inter = Inter({
+const lato = Lato({
   variable: "--font-sans",
   subsets: ["latin"],
+  weight: ["300", "400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -37,13 +40,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${playfair.variable} ${inter.variable}`}>
-      <body className="min-h-screen flex flex-col font-sans bg-white text-gray-800">
+    <html lang="pt-BR" className={`${cormorant.variable} ${lato.variable}`}>
+      <body className="min-h-screen flex flex-col font-sans bg-brand-bg text-text-primary">
         <AuthProvider>
           <CartProvider>
             <Header />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 pt-[88px]">{children}</main>
             <Footer />
+            <FloatingWhatsApp />
           </CartProvider>
         </AuthProvider>
       </body>

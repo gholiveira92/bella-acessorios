@@ -103,7 +103,7 @@ export default function RegisterPage() {
       });
 
       if (signInResult?.error) {
-        setError("Erro ao fazer login após cadastro");
+        setError("Conta criada! Mas houve erro no login automático. Faça login manualmente.");
       } else {
         router.push("/");
         router.refresh();
@@ -116,12 +116,12 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-rose-50 flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-brand-bg flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
+        <div className="bg-white rounded-2xl shadow-lg p-8 border border-brand-bg-dark">
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-serif text-rose-800">Criar Conta</h1>
-            <p className="text-gray-500 mt-2">Cadastre-se para continuar</p>
+            <h1 className="text-2xl font-serif text-text-primary">Criar Conta</h1>
+            <p className="text-text-muted mt-2">Cadastre-se para continuar</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -132,7 +132,7 @@ export default function RegisterPage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
                 Nome Completo
               </label>
               <input
@@ -140,14 +140,14 @@ export default function RegisterPage() {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full px-4 py-3 border border-brand-bg-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold"
                 placeholder="Seu nome completo"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
                 E-mail
               </label>
               <input
@@ -155,14 +155,14 @@ export default function RegisterPage() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full px-4 py-3 border border-brand-bg-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold"
                 placeholder="seu@email.com"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
                 CPF
               </label>
               <input
@@ -170,7 +170,7 @@ export default function RegisterPage() {
                 name="cpf"
                 value={formData.cpf ? formatCPF(formData.cpf) : ""}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full px-4 py-3 border border-brand-bg-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold"
                 placeholder="000.000.000-00"
                 maxLength={14}
                 required
@@ -178,7 +178,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
                 Telefone
               </label>
               <input
@@ -186,7 +186,7 @@ export default function RegisterPage() {
                 name="phone"
                 value={formData.phone ? formatPhone(formData.phone) : ""}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full px-4 py-3 border border-brand-bg-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold"
                 placeholder="(00) 00000-0000"
                 maxLength={15}
                 required
@@ -194,14 +194,14 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
                 Gênero
               </label>
               <select
                 name="gender"
                 value={formData.gender}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full px-4 py-3 border border-brand-bg-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold"
                 required
               >
                 <option value="FEMININO">Feminino</option>
@@ -211,7 +211,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
                 Senha
               </label>
               <input
@@ -219,14 +219,14 @@ export default function RegisterPage() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full px-4 py-3 border border-brand-bg-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold"
                 placeholder="••••••••"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
                 Confirmar Senha
               </label>
               <input
@@ -234,7 +234,7 @@ export default function RegisterPage() {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="w-full px-4 py-3 border border-brand-bg-dark rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold"
                 placeholder="••••••••"
                 required
               />
@@ -243,16 +243,16 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-rose-600 text-white py-3 rounded-lg hover:bg-rose-700 transition-colors disabled:opacity-50"
+              className="w-full bg-brand-gold text-white py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {loading ? "Criando conta..." : "Criar Conta"}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-gray-600">
+            <p className="text-text-secondary">
               Já tem conta?{" "}
-              <Link href="/auth/login" className="text-rose-600 hover:underline">
+              <Link href="/auth/login" className="text-brand-gold hover:underline">
                 Entrar
               </Link>
             </p>
