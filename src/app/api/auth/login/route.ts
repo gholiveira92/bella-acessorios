@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { signIn } from "next-auth/react";
-import prisma from "@/lib/db";
 import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
+import { query } from "@/lib/db-direct";
+import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
   try {
@@ -46,9 +47,8 @@ export async function POST(request: Request) {
         );
       }
       
-      const user = await prisma.user.findUnique({
-        where: { email },
-      });
+      const users = await query(`SELECT id FROM users WHERE email = $1`, [email]);
+      const user = (users as any[])[0];
 
       if (user) {
         return NextResponse.json(

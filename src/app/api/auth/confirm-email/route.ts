@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/db";
+import { query } from "@/lib/db-direct";
 
 export async function POST(request: Request) {
   try {
@@ -13,12 +13,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const user = await prisma.user.findFirst({
-      where: {
-        email,
-        confirmationToken: token,
-      },
-    });
+    const users = await query(`
+      SELECT id, email_verified FROM users 
+      WHERE email = $1 AND confirmation_token = $2
+      LIMIT 1
+    `, [email, token]);
+
+    const user = (users as any[])[0];
 
     if (!user) {
       return NextResponse.json(
@@ -27,20 +28,18 @@ export async function POST(request: Request) {
       );
     }
 
-    if (user.emailVerified) {
+    if (user.email_verified) {
       return NextResponse.json({
         success: true,
         message: "E-mail já confirmado anteriormente",
       });
     }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        emailVerified: new Date(),
-        confirmationToken: null,
-      },
-    });
+    await query(`
+      UPDATE users 
+      SET email_verified = NOW(), confirmation_token = NULL, updated_at = NOW()
+      WHERE id = $1
+    `, [user.id]);
 
     return NextResponse.json({
       success: true,

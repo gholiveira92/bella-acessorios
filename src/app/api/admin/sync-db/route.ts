@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { PrismaClient } from "@prisma/client";
+import { query } from "@/lib/db-direct";
 
 export async function POST() {
   try {
@@ -11,12 +11,8 @@ export async function POST() {
       return NextResponse.json({ error: "Acesso negado" }, { status: 401 });
     }
 
-    const prisma = new PrismaClient();
-    
-    await prisma.$executeRaw`
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified TIMESTAMP;
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS confirmation_token TEXT;
-    `;
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified TIMESTAMP`);
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS confirmation_token TEXT`);
 
     return NextResponse.json({ success: true, message: "Banco sincronizado" });
   } catch (error) {

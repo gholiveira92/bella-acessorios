@@ -1,4 +1,4 @@
-import prisma from "./db";
+import { query } from "./db-direct";
 
 interface RateLimitConfig {
   maxAttempts: number;
@@ -21,17 +21,18 @@ export async function checkRateLimit(
   const windowStart = new Date(now.getTime() - config.windowSeconds * 1000);
   const blockEnd = new Date(now.getTime() + config.blockSeconds * 1000);
 
-  const record = await prisma.rateLimitRecord.findFirst({
-    where: {
-      identifier,
-      action,
-      createdAt: { gte: windowStart },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const records = await query(`
+    SELECT id, attempts, blocked, created_at 
+    FROM rate_limit_records 
+    WHERE identifier = $1 AND action = $2 AND created_at >= $3
+    ORDER BY created_at DESC
+    LIMIT 1
+  `, [identifier, action, windowStart.toISOString()]);
+
+  const record = (records as any[])[0];
 
   if (record?.blocked) {
-    const blockExpires = new Date(record.createdAt.getTime() + config.blockSeconds * 1000);
+    const blockExpires = new Date(new Date(record.created_at).getTime() + config.blockSeconds * 1000);
     if (blockExpires > now) {
       return {
         success: false,
@@ -46,21 +47,21 @@ export async function checkRateLimit(
   const remaining = Math.max(0, config.maxAttempts - attempts);
 
   if (attempts >= config.maxAttempts) {
-    await prisma.rateLimitRecord.upsert({
-      where: { id: record?.id || "" },
-      create: {
-        identifier,
-        action,
-        attempts: attempts + 1,
-        blocked: true,
-        createdAt: now,
-      },
-      update: {
-        attempts: attempts + 1,
-        blocked: true,
-        createdAt: now,
-      },
-    });
+    const newAttempts = attempts + 1;
+    const newBlocked = true;
+    
+    if (record?.id) {
+      await query(`
+        UPDATE rate_limit_records 
+        SET attempts = $1, blocked = $2, created_at = $3 
+        WHERE id = $4
+      `, [newAttempts, newBlocked, now.toISOString(), record.id]);
+    } else {
+      await query(`
+        INSERT INTO rate_limit_records (id, identifier, action, attempts, blocked, created_at)
+        VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5)
+      `, [identifier, action, newAttempts, newBlocked, now.toISOString()]);
+    }
 
     return {
       success: false,
@@ -70,21 +71,15 @@ export async function checkRateLimit(
     };
   }
 
-  if (record) {
-    await prisma.rateLimitRecord.update({
-      where: { id: record.id },
-      data: { attempts: attempts + 1 },
-    });
+  if (record?.id) {
+    await query(`
+      UPDATE rate_limit_records SET attempts = attempts + 1 WHERE id = $1
+    `, [record.id]);
   } else {
-    await prisma.rateLimitRecord.create({
-      data: {
-        identifier,
-        action,
-        attempts: 1,
-        blocked: false,
-        createdAt: now,
-      },
-    });
+    await query(`
+      INSERT INTO rate_limit_records (id, identifier, action, attempts, blocked, created_at)
+      VALUES (gen_random_uuid()::text, $1, $2, 1, false, $3)
+    `, [identifier, action, now.toISOString()]);
   }
 
   return {
@@ -94,7 +89,5 @@ export async function checkRateLimit(
 }
 
 export async function resetRateLimit(identifier: string, action: string): Promise<void> {
-  await prisma.rateLimitRecord.deleteMany({
-    where: { identifier, action },
-  });
+  await query(`DELETE FROM rate_limit_records WHERE identifier = $1 AND action = $2`, [identifier, action]);
 }

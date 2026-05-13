@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import prisma from "@/lib/db";
+import { query } from "@/lib/db-direct";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 
 function validateWebhookSignature(
@@ -84,34 +84,46 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true });
     }
 
-    const order = await prisma.order.findUnique({
-      where: { orderNumber: externalReference },
-      include: {
-        user: true,
-        items: true,
-        payment: true,
-      },
-    });
+    const orderResult = await query(`
+      SELECT o.id, o.status, o.total, u.email, u.name
+      FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
+      WHERE o.order_number = $1
+      LIMIT 1
+    `, [externalReference]);
 
-    if (!order) {
+    if (orderResult.length === 0) {
       console.log(`Webhook: Order not found for reference ${externalReference}`);
       return NextResponse.json({ received: true });
     }
 
-    if (order.payment?.webhookToken) {
-      const isValidPayload = validateWebhookSignature(
-        rawBody,
-        signature,
-        order.payment.webhookToken
-      );
-      
-      if (!isValidPayload) {
-        console.log("Webhook: Invalid signature");
-      }
-    }
+    const order = orderResult[0] as any;
 
-    if (order.payment?.transactionId && order.payment.transactionId !== paymentId.toString()) {
-      console.log(`Webhook: Payment ID mismatch. Stored: ${order.payment.transactionId}, Received: ${paymentId}`);
+    const paymentResult = await query(`
+      SELECT id, webhook_token, transaction_id
+      FROM payments
+      WHERE order_id = $1
+      ORDER BY created_at DESC
+      LIMIT 1
+    `, [order.id]);
+
+    if (paymentResult.length > 0) {
+      const paymentData = paymentResult[0] as any;
+      if (paymentData.webhook_token) {
+        const isValidPayload = validateWebhookSignature(
+          rawBody,
+          signature,
+          paymentData.webhook_token
+        );
+        
+        if (!isValidPayload) {
+          console.log("Webhook: Invalid signature");
+        }
+      }
+
+      if (paymentData.transaction_id && paymentData.transaction_id !== paymentId.toString()) {
+        console.log(`Webhook: Payment ID mismatch. Stored: ${paymentData.transaction_id}, Received: ${paymentId}`);
+      }
     }
 
     const statusMap: Record<string, string> = {
@@ -125,42 +137,38 @@ export async function POST(request: Request) {
 
     const newStatus = statusMap[payment.status] || "AGUARDANDO_PAGAMENTO";
 
-    await prisma.order.update({
-      where: { id: order.id },
-      data: { status: newStatus },
-    });
+    await query(`UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2`, [newStatus, order.id]);
 
-    await prisma.payment.updateMany({
-      where: { orderId: order.id },
-      data: {
-        status: newStatus === "PAGO" ? "APPROVED" : "REJECTED",
-        transactionId: paymentId.toString(),
-      },
-    });
+    await query(`
+      UPDATE payments 
+      SET status = $1, transaction_id = $2, updated_at = NOW()
+      WHERE order_id = $3
+    `, [newStatus === "PAGO" ? "APPROVED" : "REJECTED", paymentId.toString(), order.id]);
 
     if (newStatus === "PAGO") {
-      for (const item of order.items) {
-        await prisma.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: {
-              decrement: item.quantity,
-            },
-          },
-        });
+      const itemsResult = await query(`
+        SELECT product_id, quantity FROM order_items WHERE order_id = $1
+      `, [order.id]);
+
+      for (const item of itemsResult as any[]) {
+        await query(`UPDATE products SET stock = stock - $1 WHERE id = $2`, [item.quantity, item.product_id]);
       }
 
-      if (order.user?.email) {
+      if (order.email) {
         try {
+          const itemsData = await query(`
+            SELECT product_name, quantity, unit_price FROM order_items WHERE order_id = $1
+          `, [order.id]);
+
           await sendOrderConfirmationEmail(
-            order.user.email,
-            order.user.name,
-            order.orderNumber,
+            order.email,
+            order.name,
+            externalReference,
             order.total,
-            order.items.map((item) => ({
-              name: item.productName,
+            (itemsData as any[]).map((item: any) => ({
+              name: item.product_name,
               quantity: item.quantity,
-              price: item.unitPrice,
+              price: parseFloat(item.unit_price),
             }))
           );
         } catch (emailError) {

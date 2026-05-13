@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import axios from "axios";
 import crypto from "crypto";
 import { getServerSession } from "next-auth";
-import prisma from "@/lib/db";
 import { authOptions } from "@/lib/auth";
+import { query } from "@/lib/db-direct";
 
 function generateWebhookToken(): string {
   return crypto.randomBytes(32).toString("hex");
@@ -41,58 +41,55 @@ export async function POST(request: Request) {
 
     const orderNumber = "BELLA-" + Date.now().toString(36).toUpperCase();
 
-    let addressRecord;
-    const existingAddress = await prisma.address.findFirst({
-      where: {
-        userId: session.user.id,
-        cep: address.cep,
-        street: address.street,
-        number: address.number,
-      },
-    });
+    const existingAddress = await query(`
+      SELECT id FROM addresses 
+      WHERE user_id = $1 AND cep = $2 AND street = $3 AND number = $4
+      LIMIT 1
+    `, [session.user.id, address.cep, address.street, address.number]);
 
-    if (existingAddress) {
-      addressRecord = existingAddress;
+    let addressId;
+    if (existingAddress.length > 0) {
+      addressId = (existingAddress[0] as any).id;
     } else {
-      addressRecord = await prisma.address.create({
-        data: {
-          userId: session.user.id,
-          cep: address.cep,
-          street: address.street,
-          number: address.number,
-          complement: address.complement || "",
-          neighborhood: address.neighborhood,
-          city: address.city,
-          state: address.state,
-        },
-      });
+      const addressResult = await query(`
+        INSERT INTO addresses (id, user_id, cep, street, number, complement, neighborhood, city, state, created_at, updated_at)
+        VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+        RETURNING id
+      `, [
+        session.user.id,
+        address.cep,
+        address.street,
+        address.number,
+        address.complement || "",
+        address.neighborhood,
+        address.city,
+        address.state
+      ]);
+      addressId = addressResult[0].id;
     }
 
-    const order = await prisma.order.create({
-      data: {
-        orderNumber,
-        userId: session.user.id,
-        addressId: addressRecord.id,
-        subtotal,
-        shippingPrice,
-        total,
-        shippingProvider: shippingOption?.name || "PAC",
-        shippingDeadline: shippingOption?.deadline || 5,
-        status: "AGUARDANDO_PAGAMENTO",
-      },
-    });
+    const orderResult = await query(`
+      INSERT INTO orders (id, order_number, user_id, address_id, subtotal, shipping_price, total, shipping_provider, shipping_deadline, status, created_at, updated_at)
+      VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+      RETURNING id
+    `, [
+      orderNumber,
+      session.user.id,
+      addressId,
+      subtotal,
+      shippingPrice,
+      total,
+      shippingOption?.name || "PAC",
+      shippingOption?.deadline || 5,
+      "AGUARDANDO_PAGAMENTO"
+    ]);
+    const orderId = orderResult[0].id;
 
     for (const item of items) {
-      await prisma.orderItem.create({
-        data: {
-          orderId: order.id,
-          productId: item.productId,
-          productName: item.name,
-          quantity: item.quantity,
-          unitPrice: item.price,
-          total: item.price * item.quantity,
-        },
-      });
+      await query(`
+        INSERT INTO order_items (id, order_id, product_id, product_name, quantity, unit_price, total, created_at)
+        VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, NOW())
+      `, [orderId, item.productId, item.name, item.quantity, item.price, item.price * item.quantity]);
     }
 
     if (paymentMethod === "pix") {
@@ -120,18 +117,17 @@ export async function POST(request: Request) {
 
       const mpPayment = mpResponse.data;
 
-      await prisma.payment.create({
-        data: {
-          orderId: order.id,
-          provider: "MERCADOPAGO",
-          method: "PIX",
-          status: mpPayment.status === "pending" ? "PENDING" : mpPayment.status.toUpperCase(),
-          transactionId: mpPayment.id?.toString(),
-          webhookToken,
-          pixQrCode: mpPayment.point_of_interaction?.transaction_data?.qr_code_base64 || "",
-          pixCopyPaste: mpPayment.point_of_interaction?.transaction_data?.qr_code || "",
-        },
-      });
+      await query(`
+        INSERT INTO payments (id, order_id, provider, method, status, transaction_id, webhook_token, pix_qr_code, pix_copy_paste, created_at, updated_at)
+        VALUES (gen_random_uuid()::text, $1, 'MERCADOPAGO', 'PIX', $2, $3, $4, $5, $6, NOW(), NOW())
+      `, [
+        orderId,
+        mpPayment.status === "pending" ? "PENDING" : mpPayment.status.toUpperCase(),
+        mpPayment.id?.toString(),
+        webhookToken,
+        mpPayment.point_of_interaction?.transaction_data?.qr_code_base64 || "",
+        mpPayment.point_of_interaction?.transaction_data?.qr_code || ""
+      ]);
     } else if (paymentMethod === "card" && cardToken) {
       const webhookToken = generateWebhookToken();
       
@@ -163,52 +159,33 @@ export async function POST(request: Request) {
         const paymentStatus = mpPayment.status === "approved" ? "APPROVED" : 
                              mpPayment.status === "in_process" ? "PENDING" : "REJECTED";
 
-        await prisma.payment.create({
-          data: {
-            orderId: order.id,
-            provider: "MERCADOPAGO",
-            method: "CARD",
-            status: paymentStatus,
-            transactionId: mpPayment.id?.toString(),
-            webhookToken,
-            installment: installment || 1,
-          },
-        });
+        await query(`
+          INSERT INTO payments (id, order_id, provider, method, status, transaction_id, webhook_token, installment, created_at, updated_at)
+          VALUES (gen_random_uuid()::text, $1, 'MERCADOPAGO', 'CARD', $2, $3, $4, $5, NOW(), NOW())
+        `, [orderId, paymentStatus, mpPayment.id?.toString(), webhookToken, installment || 1]);
 
         if (paymentStatus === "APPROVED") {
-          await prisma.order.update({
-            where: { id: order.id },
-            data: { status: "PAGO" },
-          });
+          await query(`UPDATE orders SET status = 'PAGO', updated_at = NOW() WHERE id = $1`, [orderId]);
 
           for (const item of items) {
-            await prisma.product.update({
-              where: { id: item.productId },
-              data: { stock: { decrement: item.quantity } },
-            });
+            await query(`UPDATE products SET stock = stock - $1 WHERE id = $2`, [item.quantity, item.productId]);
           }
         }
 
         return NextResponse.json({
           success: paymentStatus === "APPROVED",
-          orderNumber: order.orderNumber,
-          orderId: order.id,
+          orderNumber: orderNumber,
+          orderId: orderId,
           paymentStatus,
           statusDetail: mpPayment.status_detail,
         });
       } catch (cardError: any) {
         console.error("Card payment error:", cardError.response?.data || cardError.message);
         
-        await prisma.payment.create({
-          data: {
-            orderId: order.id,
-            provider: "MERCADOPAGO",
-            method: "CARD",
-            status: "REJECTED",
-            webhookToken,
-            installment: installment || 1,
-          },
-        });
+        await query(`
+          INSERT INTO payments (id, order_id, provider, method, status, webhook_token, installment, created_at, updated_at)
+          VALUES (gen_random_uuid()::text, $1, 'MERCADOPAGO', 'CARD', 'REJECTED', $2, $3, NOW(), NOW())
+        `, [orderId, webhookToken, installment || 1]);
 
         const errorMessage = cardError.response?.data?.message || "Erro ao processar cartão";
         return NextResponse.json(
@@ -219,27 +196,20 @@ export async function POST(request: Request) {
     } else {
       const webhookToken = generateWebhookToken();
       
-      await prisma.payment.create({
-        data: {
-          orderId: order.id,
-          provider: "MERCADOPAGO",
-          method: "CARD",
-          status: "PENDING",
-          webhookToken,
-        },
-      });
+      await query(`
+        INSERT INTO payments (id, order_id, provider, method, status, webhook_token, created_at, updated_at)
+        VALUES (gen_random_uuid()::text, $1, 'MERCADOPAGO', 'CARD', 'PENDING', $2, NOW(), NOW())
+      `, [orderId, webhookToken]);
     }
 
-    const payment = await prisma.payment.findUnique({
-      where: { orderId: order.id },
-    });
+    const payment = await query(`SELECT pix_qr_code, pix_copy_paste FROM payments WHERE order_id = $1 LIMIT 1`, [orderId]);
 
     return NextResponse.json({
       success: true,
-      orderNumber: order.orderNumber,
-      orderId: order.id,
-      pixQrCode: payment?.pixQrCode || "",
-      pixCopyPaste: payment?.pixCopyPaste || "",
+      orderNumber: orderNumber,
+      orderId: orderId,
+      pixQrCode: payment[0]?.pix_qr_code || "",
+      pixCopyPaste: payment[0]?.pix_copy_paste || "",
     });
   } catch (error) {
     console.error("Payment error:", error);
