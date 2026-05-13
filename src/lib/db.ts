@@ -5,7 +5,19 @@ declare global {
 }
 
 function createPrismaClient() {
+  // Add cache bypass parameters for Supabase connection pooler
+  let databaseUrl = process.env.DATABASE_URL || "";
+  
+  // Supabase pooler prepared statement workaround
+  if (!databaseUrl.includes("pg_session_id")) {
+    const separator = databaseUrl.includes("?") ? "&" : "?";
+    const bypassParams = `${separator}pg_session_id=${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    databaseUrl = databaseUrl.replace(bypassParams, "").replace(/pg_session_id=[^&]*/g, "");
+    databaseUrl += bypassParams;
+  }
+
   return new PrismaClient({
+    datasourceUrl: databaseUrl,
     log: ["error"],
   });
 }
