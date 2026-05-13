@@ -9,8 +9,22 @@ export function getPool(): Pool {
       throw new Error("DATABASE_URL environment variable is not set");
     }
     
+    // Parse connection string to modify for SSL
+    let url: URL;
+    try {
+      url = new URL(connectionString);
+    } catch {
+      throw new Error("Invalid DATABASE_URL");
+    }
+
+    // Remove sslmode from URL since we're handling it in Pool config
+    url.searchParams.delete("sslmode");
+    url.searchParams.delete("prepared_statement_cache");
+    url.searchParams.delete("connection_limit");
+    url.searchParams.delete("pool_timeout");
+
     pool = new Pool({
-      connectionString,
+      connectionString: url.toString(),
       max: 1,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
