@@ -23,13 +23,13 @@ interface Address {
 export default function CheckoutPage() {
   const { data: session } = useSession();
   const router = useRouter();
-  const { items, subtotal, clearCart } = useCart();
+  const { items, subtotal, clearCart, cep: cartCep, shippingOptions: cartShippingOptions, selectedShipping: cartSelectedShipping, shippingPrice } = useCart();
 
   const [step, setStep] = useState<Step>("address");
   const [loading, setLoading] = useState(false);
 
   const [address, setAddress] = useState<Address>({
-    cep: "",
+    cep: cartCep || "",
     street: "",
     number: "",
     complement: "",
@@ -38,9 +38,10 @@ export default function CheckoutPage() {
     state: "",
   });
 
-  const [selectedShipping, setSelectedShipping] = useState<{ id: string; name: string; price: number; deadline: number } | null>(null);
-  const [shippingOptions, setShippingOptions] = useState<{ id: string; name: string; price: number; deadline: number; company?: string }[]>([]);
+  const [shippingOptions, setShippingOptions] = useState<{ id: string; name: string; price: number; deadline: number; company?: string }[]>(cartShippingOptions.length > 0 ? cartShippingOptions.map(o => ({...o, deadline: o.deliveryTime || 5})) : []);
+  const [selectedShipping, setSelectedShipping] = useState<{ id: string; name: string; price: number; deadline: number } | null>(cartSelectedShipping ? { id: cartSelectedShipping.id, name: cartSelectedShipping.name, price: cartSelectedShipping.price, deadline: cartSelectedShipping.deliveryTime || 5 } : null);
   const [shippingLoading, setShippingLoading] = useState(false);
+  const [usedCartShipping, setUsedCartShipping] = useState(cartSelectedShipping !== null);
 
   const fetchShippingOptions = async (cep: string) => {
     if (cep.length !== 8) return;
@@ -108,6 +109,7 @@ export default function CheckoutPage() {
   const handleCepChange = async (cep: string) => {
     const cleaned = cep.replace(/\D/g, "");
     setAddress((prev) => ({ ...prev, cep: cleaned }));
+    setUsedCartShipping(false);
 
     if (cleaned.length === 8) {
       try {
@@ -125,6 +127,7 @@ export default function CheckoutPage() {
       } catch (error) {
         console.error("Error fetching CEP:", error);
       }
+      fetchShippingOptions(cleaned);
     }
   };
 
@@ -435,6 +438,14 @@ export default function CheckoutPage() {
                   <FiTruck /> Forma de Entrega
                 </h2>
 
+                {cartSelectedShipping?.price === 0 && usedCartShipping && (
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-green-700 font-medium text-sm">
+                      🎉 Você ganhou frete grátis!
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-3">
                   {shippingOptions.map((option) => (
                     <label
@@ -459,7 +470,7 @@ export default function CheckoutPage() {
                             <p className="text-sm text-gray-500">{option.deadline} úteis</p>
                           </div>
                         </div>
-                        <span className="font-semibold text-brand-gold">R$ {option.price.toFixed(2).replace(".", ",")}</span>
+                        <span className="font-semibold text-brand-gold">{option.price === 0 ? "GRÁTIS" : `R$ ${option.price.toFixed(2).replace(".", ",")}`}</span>
                       </div>
                     </label>
                   ))}

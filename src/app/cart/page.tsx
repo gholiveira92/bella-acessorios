@@ -35,6 +35,10 @@ export default function CartPage() {
   const [shippingError, setShippingError] = useState("");
 
   const getShippingDisplay = () => {
+    const cleanCep = cep.replace(/\D/g, "");
+    if (cleanCep.startsWith("1936") && selectedShipping?.price === 0) {
+      return "GRÁTIS";
+    }
     if (cep.length === 8 && shippingOptions.length === 0 && !shippingLoading) {
       return "Não disponível";
     }

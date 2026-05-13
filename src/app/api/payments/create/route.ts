@@ -99,6 +99,8 @@ export async function POST(request: Request) {
 
       console.log(`[PIX] Creating payment for order ${orderNumber}, total: ${total}, email: ${session.user.email}`);
 
+      const idempotencyKey = orderNumber + "-" + Date.now();
+
       try {
         const mpResponse = await axios.post(
           "https://api.mercadopago.com/v1/payments",
@@ -116,6 +118,7 @@ export async function POST(request: Request) {
             headers: {
               Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}`,
               "Content-Type": "application/json",
+              "X-Idempotency-Key": idempotencyKey,
             },
           }
         );
@@ -147,6 +150,7 @@ export async function POST(request: Request) {
       }
     } else if (paymentMethod === "card" && cardToken) {
       const webhookToken = generateWebhookToken();
+      const cardIdempotencyKey = orderNumber + "-card-" + Date.now();
       
       try {
         const cardResponse = await axios.post(
@@ -167,6 +171,7 @@ export async function POST(request: Request) {
             headers: {
               Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}`,
               "Content-Type": "application/json",
+              "X-Idempotency-Key": cardIdempotencyKey,
             },
           }
         );
