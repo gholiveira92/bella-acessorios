@@ -24,7 +24,7 @@ interface ShippingOption {
 }
 
 const FREE_SHIPPING_THRESHOLD = 299;
-const ORIGIN_CEP = "19260000";
+const ORIGIN_CEP = "19360000";
 
 async function getMelhorEnvioQuotes(cep: string, weight: number, width: number, height: number, length: number): Promise<ShippingOption[]> {
   const token = process.env.MELHOR_ENVIO_TOKEN;
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "CEP inválido" }, { status: 400 });
     }
 
-    if (cep.startsWith("19260") || cep === ORIGIN_CEP) {
+    if (cep.startsWith("19360") || cep === ORIGIN_CEP) {
       const freeQuote: ShippingOption = {
         id: "free-local",
         name: "Frete Grátis (Entrega Local)",
