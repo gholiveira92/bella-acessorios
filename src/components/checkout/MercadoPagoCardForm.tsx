@@ -17,11 +17,18 @@ export default function MercadoPagoCardForm({ userEmail, onSubmit, onError, tota
   useEffect(() => {
     async function loadSDK() {
       try {
+        const publicKey = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY;
+        if (!publicKey) {
+          console.error("MercadoPago PUBLIC_KEY not configured");
+          onError("Configuração de pagamento incompleta. Contate o administrador.");
+          return;
+        }
+
         const mp = await import("@mercadopago/sdk-react");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const init = (mp as any).default;
         if (typeof init === "function") {
-          init(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY || "");
+          init(publicKey);
         }
         
         if (mp.CardPayment) {
