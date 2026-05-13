@@ -125,6 +125,120 @@ async function getCorreiosQuotes(cep: string, weight: number, width: number, hei
   }
 }
 
+async function getJadlogQuotes(cep: string, weight: number, width: number, height: number, length: number): Promise<ShippingOption[]> {
+  try {
+    const response = await axios.post(
+      "https://www.jadlog.com.br/api/v1/shipping/calculate",
+      {
+        origin: { postal_code: ORIGIN_CEP },
+        destination: { postal_code: cep },
+        package: {
+          weight,
+          length,
+          width,
+          height,
+        },
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 10000,
+      }
+    );
+
+    if (response.data?.results) {
+      return response.data.results.map((item: any) => ({
+        id: `jadlog-${item.service}`,
+        name: item.service_name || "Jadlog",
+        price: parseFloat(item.price),
+        currency: "BRL",
+        deliveryTime: parseInt(item.delivery_time) || 5,
+        company: "Jadlog",
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error("Jadlog error:", error);
+    return [];
+  }
+}
+
+async function getAzulQuotes(cep: string, weight: number): Promise<ShippingOption[]> {
+  try {
+    const response = await axios.post(
+      "https://api.azulcargo.com.br/v1/shipping/calculate",
+      {
+        origin_postal_code: ORIGIN_CEP,
+        destination_postal_code: cep,
+        weight,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 10000,
+      }
+    );
+
+    if (response.data?.options) {
+      return response.data.options.map((item: any) => ({
+        id: `azul-${item.id}`,
+        name: item.name || "Azul Cargo",
+        price: parseFloat(item.price),
+        currency: "BRL",
+        deliveryTime: parseInt(item.days) || 5,
+        company: "Azul Cargo",
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error("Azul Cargo error:", error);
+    return [];
+  }
+}
+
+async function getLATAMCargoQuotes(cep: string, weight: number, width: number, height: number, length: number): Promise<ShippingOption[]> {
+  try {
+    const response = await axios.post(
+      "https://api.latamcargo.com.br/v1/shipping/calculate",
+      {
+        origin: ORIGIN_CEP,
+        destination: cep,
+        package: {
+          weight,
+          dimensions: {
+            length,
+            width,
+            height,
+          },
+        },
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 10000,
+      }
+    );
+
+    if (response.data?.rates) {
+      return response.data.rates.map((item: any) => ({
+        id: `latam-${item.service_code}`,
+        name: item.service_name || "LATAM Cargo",
+        price: parseFloat(item.total_price),
+        currency: "BRL",
+        deliveryTime: parseInt(item.estimated_days) || 5,
+        company: "LATAM Cargo",
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error("LATAM Cargo error:", error);
+    return [];
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body: ShippingQuoteRequest = await request.json();
@@ -158,32 +272,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ quotes: [freeQuote], freeShippingApplied: true, reason: `Frete grátis aplicado: compras acima de R$ ${FREE_SHIPPING_THRESHOLD}` });
     }
 
-    const [melhorEnvioQuotes, correiosQuotes] = await Promise.allSettled([
+    const promises = [
       getMelhorEnvioQuotes(cep, weight, width, height, length),
       getCorreiosQuotes(cep, weight, width, height, length),
-    ]);
+      getJadlogQuotes(cep, weight, width, height, length),
+    ];
+
+    const results = await Promise.allSettled(promises);
 
     let quotes: ShippingOption[] = [];
+    const sources: Record<string, boolean> = {};
 
-    if (melhorEnvioQuotes.status === "fulfilled") {
-      quotes.push(...melhorEnvioQuotes.value);
-    }
-
-    if (correiosQuotes.status === "fulfilled") {
-      quotes.push(...correiosQuotes.value);
-    }
+    const sourceNames = ["melhorEnvio", "correios", "jadlog"];
+    results.forEach((result, index) => {
+      if (result.status === "fulfilled" && result.value.length > 0) {
+        quotes.push(...result.value);
+        sources[sourceNames[index]] = true;
+      }
+    });
 
     if (quotes.length === 0) {
       console.log("Nenhum frete encontrado, usando fallbacks");
       quotes = [
-        { id: "pac", name: "PAC", price: 15.9, currency: "BRL", deliveryTime: 7, company: "Correios (Estimado)" },
-        { id: "sedex", name: "SEDEX", price: 25.9, currency: "BRL", deliveryTime: 3, company: "Correios (Estimado)" },
+        { id: "pac", name: "PAC", price: 15.9, currency: "BRL", deliveryTime: 7, company: "Correios" },
+        { id: "sedex", name: "SEDEX", price: 25.9, currency: "BRL", deliveryTime: 3, company: "Correios" },
+        { id: "jadlog-paquete", name: "Jadlog Paquete", price: 19.9, currency: "BRL", deliveryTime: 5, company: "Jadlog" },
+        { id: "jadlog-expresso", name: "Jadlog Expresso", price: 29.9, currency: "BRL", deliveryTime: 2, company: "Jadlog" },
       ];
+      sources.fallback = true;
     }
 
     const seen = new Set<string>();
     quotes = quotes.filter((q) => {
-      const key = `${q.company}-${q.name}`;
+      const key = `${q.company}-${q.name}`.toLowerCase();
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -195,10 +316,7 @@ export async function POST(request: Request) {
       quotes,
       freeShippingThreshold: FREE_SHIPPING_THRESHOLD,
       currentSubtotal: subtotal,
-      source: {
-        melhorEnvio: melhorEnvioQuotes.status === "fulfilled" && melhorEnvioQuotes.value.length > 0,
-        correios: correiosQuotes.status === "fulfilled" && correiosQuotes.value.length > 0,
-      }
+      source: sources,
     });
   } catch (error) {
     console.error("Shipping quote error:", error);
@@ -206,6 +324,7 @@ export async function POST(request: Request) {
     const fallbackQuotes: ShippingOption[] = [
       { id: "pac", name: "PAC", price: 15.9, currency: "BRL", deliveryTime: 7, company: "Correios" },
       { id: "sedex", name: "SEDEX", price: 25.9, currency: "BRL", deliveryTime: 3, company: "Correios" },
+      { id: "jadlog-paquete", name: "Jadlog Paquete", price: 19.9, currency: "BRL", deliveryTime: 5, company: "Jadlog" },
     ];
     
     return NextResponse.json({ 
