@@ -23,8 +23,8 @@ export async function POST(request: Request) {
     const phoneValue = phone && phone.length >= 10 ? phone : Math.random().toString().slice(2, 13).padStart(11, "0");
 
     await query(
-      `INSERT INTO users (id, name, email, password_hash, cpf, gender, phone, role, email_verified, created_at, updated_at)
-       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, 'CLIENT', NOW(), NOW(), NOW())`,
+      `INSERT INTO users (id, name, email, password_hash, cpf, gender, phone, role, email_verified, confirmation_token, created_at, updated_at)
+       VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, 'CLIENT', NOW(), NULL, NOW(), NOW())`,
       [name, email, passwordHash, cpfValue, gender || "F", phoneValue]
     );
 

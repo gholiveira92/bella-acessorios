@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { signIn } from "next-auth/react";
 import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
 import { query } from "@/lib/db-direct";
+import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
   try {
@@ -32,38 +32,32 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    const users = await query(
+      `SELECT id, name, email, password_hash, role, email_verified FROM users WHERE email = $1`,
+      [email]
+    );
+    const user = (users as any[])[0];
 
-    if (result?.error) {
-      if (result.error.includes("CONFIRM_EMAIL_REQUIRED")) {
-        return NextResponse.json(
-          { error: "Você precisa confirmar seu e-mail antes de fazer login." },
-          { status: 401 }
-        );
-      }
-
-      const users = await query(`SELECT id FROM users WHERE email = $1`, [email]);
-      const user = (users as any[])[0];
-
-      if (user) {
-        return NextResponse.json(
-          { error: "E-mail ou senha incorretos", attempts: rateLimitResult.remaining },
-          { status: 401 }
-        );
-      }
-
+    if (!user) {
       return NextResponse.json({ error: "E-mail ou senha incorretos" }, { status: 401 });
     }
 
-    if (!result?.error) {
-      await resetRateLimit(identifier, "login");
+    const isValid = await bcrypt.compare(password, user.password_hash);
+
+    if (!isValid) {
+      return NextResponse.json({ error: "E-mail ou senha incorretos" }, { status: 401 });
     }
 
-    return NextResponse.json({ success: true });
+    if (!user.email_verified) {
+      return NextResponse.json(
+        { error: "Você precisa confirmar seu e-mail antes de fazer login." },
+        { status: 401 }
+      );
+    }
+
+    await resetRateLimit(identifier, "login");
+
+    return NextResponse.json({ success: true, user: { id: user.id, name: user.name, email: user.email } });
   } catch (error: any) {
     console.error("Login error details:", {
       message: error?.message,
