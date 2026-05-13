@@ -6,36 +6,11 @@ import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json();
-
-    const ip = request.headers.get("x-forwarded-for") || "unknown";
-    const userAgent = request.headers.get("user-agent") || "unknown";
-    const identifier = `${ip}-${userAgent}`.slice(0, 200);
-
-    const rateLimitResult = await checkRateLimit(identifier, "login");
-
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        {
-          error: "Muitas tentativas de login. Tente novamente mais tarde.",
-          retryAfter: rateLimitResult.resetAt 
-            ? Math.ceil((rateLimitResult.resetAt.getTime() - Date.now()) / 1000) 
-            : 900,
-        },
-        {
-          status: 429,
-          headers: {
-            "Retry-After": rateLimitResult.resetAt 
-              ? Math.ceil((rateLimitResult.resetAt.getTime() - Date.now()) / 1000).toString() 
-              : "900",
-          },
-        }
-      );
-    }
+const { email, password } = await request.json();
 
     const result = await signIn("credentials", {
       email,
-      password: "",
+      password,
       redirect: false,
     });
 
