@@ -2,11 +2,35 @@ import { NextResponse } from "next/server";
 import { signIn } from "next-auth/react";
 import { checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
 import { query } from "@/lib/db-direct";
-import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
   try {
-const { email, password } = await request.json();
+    const { email, password } = await request.json();
+
+    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    const userAgent = request.headers.get("user-agent") || "unknown";
+    const identifier = `${ip}-${userAgent}`.slice(0, 200);
+
+    const rateLimitResult = await checkRateLimit(identifier, "login");
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        {
+          error: "Muitas tentativas de login. Tente novamente mais tarde.",
+          retryAfter: rateLimitResult.resetAt
+            ? Math.ceil((rateLimitResult.resetAt.getTime() - Date.now()) / 1000)
+            : 900,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": rateLimitResult.resetAt
+              ? Math.ceil((rateLimitResult.resetAt.getTime() - Date.now()) / 1000).toString()
+              : "900",
+          },
+        }
+      );
+    }
 
     const result = await signIn("credentials", {
       email,
@@ -21,7 +45,7 @@ const { email, password } = await request.json();
           { status: 401 }
         );
       }
-      
+
       const users = await query(`SELECT id FROM users WHERE email = $1`, [email]);
       const user = (users as any[])[0];
 
@@ -31,6 +55,8 @@ const { email, password } = await request.json();
           { status: 401 }
         );
       }
+
+      return NextResponse.json({ error: "E-mail ou senha incorretos" }, { status: 401 });
     }
 
     if (!result?.error) {
@@ -40,9 +66,6 @@ const { email, password } = await request.json();
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Login error:", error);
-    return NextResponse.json(
-      { error: "Erro ao fazer login" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Erro ao fazer login" }, { status: 500 });
   }
 }
