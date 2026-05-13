@@ -19,10 +19,13 @@ export async function POST(request: Request) {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
+    const cpfValue = cpf && cpf.length === 11 ? cpf : null;
+    const phoneValue = phone && phone.length >= 10 ? phone : null;
+
     await query(
       `INSERT INTO users (id, name, email, password_hash, cpf, gender, phone, role, email_verified, created_at, updated_at)
        VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, 'CLIENT', NOW(), NOW(), NOW())`,
-      [name, email, passwordHash, cpf || "00000000000", gender || "F", phone || "00000000000"]
+      [name, email, passwordHash, cpfValue, gender || "F", phoneValue]
     );
 
     return NextResponse.json({ success: true });
