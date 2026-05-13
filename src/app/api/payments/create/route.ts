@@ -126,6 +126,15 @@ export async function POST(request: Request) {
         const mpPayment = mpResponse.data;
         console.log(`[PIX] Mercado Pago response:`, JSON.stringify(mpPayment));
 
+        if (!mpPayment || !mpPayment.id) {
+          console.error("[PIX] Invalid payment response:", mpPayment);
+          await query(`DELETE FROM orders WHERE id = $1`, [orderId]);
+          return NextResponse.json({
+            error: mpPayment?.message || "Erro ao processar pagamento PIX",
+            details: mpPayment
+          }, { status: 500 });
+        }
+
         const qrCodeBase64 = mpPayment?.point_of_interaction?.transaction_data?.qr_code_base64 || "";
         const qrCodeCopyPaste = mpPayment?.point_of_interaction?.transaction_data?.qr_code || "";
 

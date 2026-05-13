@@ -106,6 +106,14 @@ export default function CheckoutPage() {
     }
   }, [items, orderCreated, router]);
 
+  useEffect(() => {
+    if (cartCep && cartCep.length === 8 && shippingOptions.length === 0) {
+      fetchShippingOptions(cartCep);
+    }
+  }, []);
+
+  const isLocalDelivery = address.cep.replace(/\D/g, "").startsWith("1936");
+
   const handleCepChange = async (cep: string) => {
     const cleaned = cep.replace(/\D/g, "");
     setAddress((prev) => ({ ...prev, cep: cleaned }));
@@ -350,6 +358,11 @@ export default function CheckoutPage() {
                         </div>
                       )}
                     </div>
+                    {isLocalDelivery && (
+                      <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                        <span>📍</span> Entrega local em Santo Anastácio — o frete será gratuito
+                      </p>
+                    )}
                   </div>
 
                   <div>

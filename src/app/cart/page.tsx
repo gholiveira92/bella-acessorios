@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { FiTrash2, FiShoppingBag, FiArrowLeft, FiTruck, FiCheck } from "react-icons/fi";
@@ -34,9 +34,21 @@ export default function CartPage() {
   const [cepInput, setCepInput] = useState(cep);
   const [shippingError, setShippingError] = useState("");
 
+  useEffect(() => {
+    if (cep && cep !== cepInput.replace(/\D/g, "")) {
+      setCepInput(formatCep(cep));
+    }
+  }, [cep]);
+
+  useEffect(() => {
+    if (cep && cep.length === 8 && shippingOptions.length === 0 && !shippingLoading) {
+      fetchShippingOptions();
+    }
+  }, [cep]);
+
   const getShippingDisplay = () => {
     const cleanCep = cep.replace(/\D/g, "");
-    if (cleanCep.startsWith("1936") && selectedShipping?.price === 0) {
+    if (cleanCep.startsWith("1936") && (selectedShipping?.price === 0 || shippingOptions.some(o => o.price === 0))) {
       return "GRÁTIS";
     }
     if (cep.length === 8 && shippingOptions.length === 0 && !shippingLoading) {
@@ -68,7 +80,7 @@ export default function CartPage() {
     if (e.key === "Enter") handleCalculateShipping();
   };
 
-  const effectiveShipping = subtotal >= 299 && selectedShipping?.price === 0 ? 0 : shippingPrice;
+  const effectiveShipping = subtotal >= 299 && (selectedShipping?.price === 0 || shippingOptions.some(o => o.price === 0)) ? 0 : (selectedShipping?.price ?? 0);
   const total = subtotal + effectiveShipping;
 
   if (isLoading) {
