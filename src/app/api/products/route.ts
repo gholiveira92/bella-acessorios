@@ -1,17 +1,8 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-function createPrismaClient() {
-  return new PrismaClient({
-    log: ["error"],
-  });
-}
+import { query } from "@/lib/db-direct";
 
 export async function GET(request: Request) {
-  let prisma;
-  
   try {
-    prisma = createPrismaClient();
     const { searchParams } = new URL(request.url);
     
     const category = searchParams.get("category");
@@ -43,12 +34,9 @@ export async function GET(request: Request) {
 
     const offset = (page - 1) * limit;
 
-    // Raw SQL with parameters using $1, $2, etc.
     const productsSql = `
       SELECT p.id, p.name, p.slug, p.description, p.price, p.promotional_price, p.stock,
-             c.id as cat_id, c.name as cat_name, c.slug as cat_slug,
-             (SELECT json_agg(json_build_object('id', pi.id, 'url', pi.url, 'isMain', pi.is_main) ORDER BY pi.is_main DESC)
-              FROM product_images pi WHERE pi.product_id = p.id) as images
+             c.id as cat_id, c.name as cat_name, c.slug as cat_slug
       FROM products p
       LEFT JOIN categories c ON p.category_id = c.id
       ${sqlWhere}
@@ -61,15 +49,36 @@ export async function GET(request: Request) {
 
     const categoriesSql = `SELECT id, name, slug FROM categories ORDER BY name`;
 
-    // Use $queryRawUnsafe with proper parameter mapping
-    const products = await (prisma as any).$queryRawUnsafe(productsSql, ...params);
-    const countResult = await (prisma as any).$queryRawUnsafe(countSql, ...params);
-    const categories = await (prisma as any).$queryRawUnsafe(categoriesSql);
+    // Execute queries
+    const products = await query(productsSql, params);
+    const countResult = await query(countSql, params);
+    const categories = await query(categoriesSql);
+
+    // Get images for products
+    const productIds = products.map((p: any) => p.id);
+    let imagesMap: Record<string, any[]> = {};
+    
+    if (productIds.length > 0) {
+      const placeholders = productIds.map((_, i) => `$${i + 1}`).join(",");
+      const imagesResult = await query(
+        `SELECT product_id, id, url, is_main FROM product_images WHERE product_id IN (${placeholders}) ORDER BY is_main DESC, id`,
+        productIds
+      );
+      
+      for (const img of imagesResult as any[]) {
+        if (!imagesMap[img.product_id]) imagesMap[img.product_id] = [];
+        imagesMap[img.product_id].push({
+          id: img.id,
+          url: img.url,
+          isMain: img.is_main,
+        });
+      }
+    }
 
     const total = countResult[0]?.total || 0;
 
     return NextResponse.json({
-      products: (products as any[]).map((p: any) => ({
+      products: products.map((p: any) => ({
         id: p.id,
         name: p.name,
         slug: p.slug,
@@ -78,9 +87,9 @@ export async function GET(request: Request) {
         promotionalPrice: p.promotional_price ? parseFloat(p.promotional_price) : null,
         stock: p.stock,
         category: p.cat_id ? { id: p.cat_id, name: p.cat_name, slug: p.cat_slug } : null,
-        images: (p.images as any[])?.filter((i: any) => i?.id) || [],
+        images: imagesMap[p.id] || [],
       })),
-      categories: (categories as any[]).map((c: any) => ({ id: c.id, name: c.name, slug: c.slug })),
+      categories: categories.map((c: any) => ({ id: c.id, name: c.name, slug: c.slug })),
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
 
@@ -90,7 +99,5 @@ export async function GET(request: Request) {
       { error: "Erro ao buscar produtos", details: error.message },
       { status: 500 }
     );
-  } finally {
-    if (prisma) await prisma.$disconnect();
   }
 }
