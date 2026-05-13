@@ -50,10 +50,10 @@ export default function NewProductPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch("/api/admin/products");
+      const res = await fetch("/api/admin/categories");
       const data = await res.json();
-      if (res.ok) {
-        setCategories(data.categories || []);
+      if (res.ok && data.categories) {
+        setCategories(data.categories);
       }
     } catch (error) {
       console.error("Error fetching categories:", error);

@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { FiHome, FiShoppingBag, FiPackage, FiSettings, FiLogOut } from "react-icons/fi";
+import { FiHome, FiShoppingBag, FiPackage, FiGrid, FiSettings, FiLogOut } from "react-icons/fi";
 
 const menuItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: <FiHome /> },
   { href: "/admin/products", label: "Produtos", icon: <FiShoppingBag /> },
+  { href: "/admin/categories", label: "Categorias", icon: <FiGrid /> },
   { href: "/admin/orders", label: "Pedidos", icon: <FiPackage /> },
 ];
 
