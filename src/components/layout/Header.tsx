@@ -61,10 +61,10 @@ export default function Header() {
         >
           <div className="max-w-7xl mx-auto px-5 md:px-12 lg:px-16">
             {/* Flex Container: Nav Left | Logo | Actions Right */}
-            <div className="flex items-center justify-between h-[68px] md:h-[76px]">
-              
-              {/* Nav Left */}
-              <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+            <div className="relative flex items-center h-[68px] md:h-[76px]">
+
+              {/* Nav Left - Desktop Only */}
+              <nav className="hidden md:flex items-center gap-6 lg:gap-8 flex-none">
                 {menuItems.map((item) => (
                   <Link
                     key={item.slug}
@@ -79,22 +79,22 @@ export default function Header() {
 
               {/* Mobile Menu Button */}
               <button
-                className="md:hidden p-2 -ml-2 text-text-secondary hover:text-brand-gold transition-colors"
+                className="md:hidden absolute left-0 p-2 text-text-secondary hover:text-brand-gold transition-colors"
                 onClick={() => setMenuOpen(true)}
                 aria-label="Menu"
               >
                 <FiMenu size={22} />
               </button>
 
-              {/* Logo Center */}
-              <Link href="/" className="flex-shrink-0 mx-4 md:mx-0">
+              {/* Logo - Always Centered */}
+              <Link href="/" className="absolute left-1/2 -translate-x-1/2 md:left-1/2 md:-translate-x-1/2">
                 <h1 className="text-lg md:text-xl font-serif text-brand-gold-dark tracking-[0.18em] uppercase whitespace-nowrap">
                   Bella Acessórios
                 </h1>
               </Link>
 
               {/* Actions Right */}
-              <div className="flex items-center gap-1 md:gap-2">
+              <div className="absolute right-0 flex items-center gap-1 md:gap-2">
                 {/* Search Button */}
                 <button
                   className="hidden md:block p-2 text-text-secondary hover:text-brand-gold transition-colors"
@@ -104,7 +104,7 @@ export default function Header() {
                   <FiSearch size={19} />
                 </button>
 
-                {/* Search Icon Mobile */}
+                {/* Mobile Search Icon */}
                 <button
                   className="md:hidden p-2 text-text-secondary hover:text-brand-gold transition-colors"
                   onClick={() => setSearchOpen(true)}
@@ -126,7 +126,7 @@ export default function Header() {
                   )}
                 </Link>
 
-                {/* User */}
+                {/* User Desktop */}
                 {session?.user ? (
                   <div className="relative hidden md:block">
                     <button
