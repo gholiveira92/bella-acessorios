@@ -9,6 +9,7 @@ import ProductGallery from "@/components/ui/ProductGallery";
 import ShippingCalculator from "@/components/ui/ShippingCalculator";
 import ProductBadges from "@/components/ui/ProductBadges";
 import ProductCard from "@/components/ui/ProductCard";
+import ProductJsonLd from "@/components/ui/ProductJsonLd";
 
 interface ProductImage {
   id: string;
@@ -156,6 +157,15 @@ const handleAddToCart = () => {
 
   return (
     <div className="min-h-screen bg-brand-bg">
+      {mainImage && (
+        <ProductJsonLd
+          name={product.name}
+          description={product.description || ""}
+          image={mainImage}
+          price={currentPrice}
+          url={`${process.env.NEXT_PUBLIC_SITE_URL}/product/${product.slug}`}
+        />
+      )}
       <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
         
         {/* Breadcrumb */}

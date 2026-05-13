@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import Link from "next/link";
 import { FiArrowLeft, FiCheck, FiTruck, FiCreditCard, FiLock } from "react-icons/fi";
+import MercadoPagoCardForm from "@/components/checkout/MercadoPagoCardForm";
 
 type Step = "address" | "shipping" | "payment" | "review";
 
@@ -40,30 +41,28 @@ export default function CheckoutPage() {
   const [selectedShipping, setSelectedShipping] = useState<{ id: string; name: string; price: number; deadline: number } | null>(null);
   const [shippingOptions, setShippingOptions] = useState<{ id: string; name: string; price: number; deadline: number; company?: string }[]>([]);
   const [shippingLoading, setShippingLoading] = useState(false);
-  const [shippingError, setShippingError] = useState("");
 
   const fetchShippingOptions = async (cep: string) => {
     if (cep.length !== 8) return;
-    
+
     setShippingLoading(true);
-    setShippingError("");
-    
+
     try {
       const res = await fetch("/api/shipping/quote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           cep,
           weight: 0.5,
           width: 10,
           height: 10,
           length: 10,
-          subtotal 
+          subtotal,
         }),
       });
-      
+
       const data = await res.json();
-      
+
       if (data.quotes && data.quotes.length > 0) {
         const options = data.quotes.map((q: any) => ({
           id: q.id,
@@ -82,7 +81,6 @@ export default function CheckoutPage() {
       }
     } catch (error) {
       console.error("Erro ao buscar fretes:", error);
-      setShippingError("Erro ao calcular frete");
       setShippingOptions([
         { id: "pac", name: "PAC", price: 15.9, deadline: 7 },
         { id: "sedex", name: "SEDEX", price: 25.9, deadline: 3 },
@@ -91,7 +89,9 @@ export default function CheckoutPage() {
       setShippingLoading(false);
     }
   };
+
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "card">("pix");
+  const [cardToken, setCardToken] = useState<string | null>(null);
   const [orderCreated, setOrderCreated] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
   const [pixData, setPixData] = useState<{ qrCode: string; copyPaste: string } | null>(null);
@@ -139,6 +139,15 @@ export default function CheckoutPage() {
     );
   };
 
+  const handleCardPayment = (token: string, installment: number) => {
+    setCardToken(token);
+    setStep("review");
+  };
+
+  const handleCardError = (error: string) => {
+    alert(error);
+  };
+
   const handleCreateOrder = async () => {
     setLoading(true);
 
@@ -150,15 +159,22 @@ export default function CheckoutPage() {
         quantity: item.quantity,
       }));
 
+      const payload: any = {
+        items: orderItems,
+        address,
+        shippingOption: selectedShipping,
+        paymentMethod,
+      };
+
+      if (paymentMethod === "card" && cardToken) {
+        payload.cardToken = cardToken;
+        payload.installment = 1;
+      }
+
       const res = await fetch("/api/payments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: orderItems,
-          address,
-          shippingOption: selectedShipping,
-          paymentMethod,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -176,8 +192,19 @@ export default function CheckoutPage() {
           copyPaste: data.pixCopyPaste || "",
         });
       }
-      setOrderCreated(true);
-      clearCart();
+      if (paymentMethod === "card") {
+        if (data.success) {
+          setOrderCreated(true);
+          clearCart();
+        } else {
+          alert(data.error || "Pagamento recusado");
+          setLoading(false);
+          return;
+        }
+      } else {
+        setOrderCreated(true);
+        clearCart();
+      }
     } catch (error) {
       console.error("Error creating order:", error);
       alert("Erro ao processar pedido");
@@ -204,7 +231,7 @@ export default function CheckoutPage() {
           <p className="text-gray-600 mb-8">
             Número do pedido: <span className="font-semibold">{orderNumber}</span>
           </p>
-          
+
           {paymentMethod === "pix" && (
             <div className="bg-gray-50 p-6 rounded-lg mb-8">
               <h3 className="font-semibold text-gray-800 mb-4">Pagamento via PIX</h3>
@@ -213,9 +240,9 @@ export default function CheckoutPage() {
               </p>
               {pixData?.qrCode && (
                 <div className="mb-4">
-                  <img 
-                    src={`data:image/png;base64,${pixData.qrCode}`} 
-                    alt="QR Code PIX" 
+                  <img
+                    src={`data:image/png;base64,${pixData.qrCode}`}
+                    alt="QR Code PIX"
                     className="w-48 h-48 mx-auto"
                   />
                 </div>
@@ -228,6 +255,13 @@ export default function CheckoutPage() {
             </div>
           )}
 
+          {paymentMethod === "card" && (
+            <div className="bg-green-50 p-6 rounded-lg mb-8">
+              <FiCheck className="text-green-600 text-3xl mx-auto mb-2" />
+              <p className="text-green-700">Pagamento aprovado! Seu pedido foi confirmado.</p>
+            </div>
+          )}
+
           <div className="flex flex-col gap-4">
             <Link
               href="/my-orders"
@@ -235,10 +269,7 @@ export default function CheckoutPage() {
             >
               Ver Meus Pedidos
             </Link>
-            <Link
-              href="/catalog"
-              className="text-brand-gold hover:underline"
-            >
+            <Link href="/catalog" className="text-brand-gold hover:underline">
               Continuar Comprando
             </Link>
           </div>
@@ -264,12 +295,24 @@ export default function CheckoutPage() {
           </div>
           <div className="w-8 h-px bg-gray-300"></div>
           <div className={`flex items-center gap-2 ${step === "shipping" ? "text-brand-gold" : "text-gray-400"}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${step === "shipping" || step === "payment" || step === "review" ? "bg-brand-gold text-white" : "bg-gray-300 text-gray-600"}`}>2</div>
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
+                step === "shipping" || step === "payment" || step === "review" ? "bg-brand-gold text-white" : "bg-gray-300 text-gray-600"
+              }`}
+            >
+              2
+            </div>
             <span className="text-sm">Frete</span>
           </div>
           <div className="w-8 h-px bg-gray-300"></div>
           <div className={`flex items-center gap-2 ${step === "payment" ? "text-brand-gold" : "text-gray-400"}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${step === "payment" || step === "review" ? "bg-brand-gold text-white" : "bg-gray-300 text-gray-600"}`}>3</div>
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
+                step === "payment" || step === "review" ? "bg-brand-gold text-white" : "bg-gray-300 text-gray-600"
+              }`}
+            >
+              3
+            </div>
             <span className="text-sm">Pagamento</span>
           </div>
         </div>
@@ -279,7 +322,7 @@ export default function CheckoutPage() {
             {step === "address" && (
               <div className="bg-white border border-gray-200 rounded-lg p-6">
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Endereço de Entrega</h2>
-                
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">CEP *</label>
@@ -294,13 +337,13 @@ export default function CheckoutPage() {
                             fetchShippingOptions(cleanCep);
                           }
                         }}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-bg-light0"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold"
                         placeholder="00000000"
                         maxLength={8}
                       />
                       {shippingLoading && (
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                          <div className="w-5 h-5 border-2 border-brand-gold border-t-transparent rounded-full animate-spin"></div>
+                          <div className="w-5 h-5 border-2 border-brand-gold border-t-transparent rounded-full animate-spin" />
                         </div>
                       )}
                     </div>
@@ -312,7 +355,7 @@ export default function CheckoutPage() {
                       type="text"
                       value={address.street}
                       onChange={(e) => setAddress((prev) => ({ ...prev, street: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-bg-light0"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold"
                       placeholder="Rua/Avenida"
                     />
                   </div>
@@ -324,7 +367,7 @@ export default function CheckoutPage() {
                         type="text"
                         value={address.number}
                         onChange={(e) => setAddress((prev) => ({ ...prev, number: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-bg-light0"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold"
                         placeholder="123"
                       />
                     </div>
@@ -334,7 +377,7 @@ export default function CheckoutPage() {
                         type="text"
                         value={address.complement}
                         onChange={(e) => setAddress((prev) => ({ ...prev, complement: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-bg-light0"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold"
                         placeholder="Apto/Bloco"
                       />
                     </div>
@@ -346,7 +389,7 @@ export default function CheckoutPage() {
                       type="text"
                       value={address.neighborhood}
                       onChange={(e) => setAddress((prev) => ({ ...prev, neighborhood: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-bg-light0"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold"
                       placeholder="Bairro"
                     />
                   </div>
@@ -358,7 +401,7 @@ export default function CheckoutPage() {
                         type="text"
                         value={address.city}
                         onChange={(e) => setAddress((prev) => ({ ...prev, city: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-bg-light0"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold"
                         placeholder="Cidade"
                       />
                     </div>
@@ -368,7 +411,7 @@ export default function CheckoutPage() {
                         type="text"
                         value={address.state}
                         onChange={(e) => setAddress((prev) => ({ ...prev, state: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-bg-light0"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold"
                         placeholder="UF"
                         maxLength={2}
                       />
@@ -416,9 +459,7 @@ export default function CheckoutPage() {
                             <p className="text-sm text-gray-500">{option.deadline} úteis</p>
                           </div>
                         </div>
-                        <span className="font-semibold text-brand-gold">
-                          R$ {option.price.toFixed(2).replace(".", ",")}
-                        </span>
+                        <span className="font-semibold text-brand-gold">R$ {option.price.toFixed(2).replace(".", ",")}</span>
                       </div>
                     </label>
                   ))}
@@ -450,9 +491,7 @@ export default function CheckoutPage() {
                 <div className="space-y-3 mb-6">
                   <label
                     className={`block p-4 border rounded-lg cursor-pointer transition-colors ${
-                      paymentMethod === "pix"
-                        ? "border-brand-gold bg-brand-bg-light"
-                        : "border-gray-200 hover:border-gray-300"
+                      paymentMethod === "pix" ? "border-brand-gold bg-brand-bg-light" : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -460,7 +499,10 @@ export default function CheckoutPage() {
                         type="radio"
                         name="payment"
                         checked={paymentMethod === "pix"}
-                        onChange={() => setPaymentMethod("pix")}
+                        onChange={() => {
+                          setPaymentMethod("pix");
+                          setCardToken(null);
+                        }}
                         className="text-brand-gold"
                       />
                       <span className="font-medium text-gray-800">PIX</span>
@@ -469,9 +511,7 @@ export default function CheckoutPage() {
 
                   <label
                     className={`block p-4 border rounded-lg cursor-pointer transition-colors ${
-                      paymentMethod === "card"
-                        ? "border-brand-gold bg-brand-bg-light"
-                        : "border-gray-200 hover:border-gray-300"
+                      paymentMethod === "card" ? "border-brand-gold bg-brand-bg-light" : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -479,7 +519,10 @@ export default function CheckoutPage() {
                         type="radio"
                         name="payment"
                         checked={paymentMethod === "card"}
-                        onChange={() => setPaymentMethod("card")}
+                        onChange={() => {
+                          setPaymentMethod("card");
+                          setCardToken(null);
+                        }}
                         className="text-brand-gold"
                       />
                       <span className="font-medium text-gray-800">Cartão de Crédito</span>
@@ -487,34 +530,16 @@ export default function CheckoutPage() {
                   </label>
                 </div>
 
-                {paymentMethod === "card" && (
-                  <div className="space-y-4 mb-6 p-4 bg-gray-50 rounded-lg">
-                    <input
-                      type="text"
-                      placeholder="Número do cartão"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg"
-                    />
-                    <div className="grid grid-cols-2 gap-4">
-                      <input
-                        type="text"
-                        placeholder="MM/AA"
-                        className="px-4 py-3 border border-gray-200 rounded-lg"
-                      />
-                      <input
-                        type="text"
-                        placeholder="CVV"
-                        className="px-4 py-3 border border-gray-200 rounded-lg"
-                      />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Nome no cartão"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg"
-                    />
-                  </div>
+                {paymentMethod === "card" && session?.user?.email && (
+                  <MercadoPagoCardForm
+                    userEmail={session.user.email}
+                    onSubmit={handleCardPayment}
+                    onError={handleCardError}
+                    total={total}
+                  />
                 )}
 
-                <div className="flex gap-4">
+                <div className="flex gap-4 mt-6">
                   <button
                     onClick={() => setStep("shipping")}
                     className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 transition-colors"
@@ -522,8 +547,15 @@ export default function CheckoutPage() {
                     Voltar
                   </button>
                   <button
-                    onClick={() => setStep("review")}
-                    className="flex-1 bg-brand-gold text-white py-3 rounded-lg hover:bg-brand-gold-dark transition-colors"
+                    onClick={() => {
+                      if (paymentMethod === "pix") {
+                        setStep("review");
+                      } else if (!cardToken) {
+                        alert("Preencha os dados do cartão");
+                      }
+                    }}
+                    disabled={paymentMethod === "card" && !cardToken}
+                    className="flex-1 bg-brand-gold text-white py-3 rounded-lg hover:bg-brand-gold-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Revisar Pedido
                   </button>
@@ -557,16 +589,16 @@ export default function CheckoutPage() {
 
                   <div className="border-b pb-4">
                     <h3 className="font-medium text-gray-800 mb-2">Pagamento</h3>
-                    <p className="text-gray-600 text-sm">
-                      {paymentMethod === "pix" ? "PIX" : "Cartão de Crédito"}
-                    </p>
+                    <p className="text-gray-600 text-sm">{paymentMethod === "pix" ? "PIX" : "Cartão de Crédito"}</p>
                   </div>
 
                   <div>
                     <h3 className="font-medium text-gray-800 mb-2">Itens ({items.length})</h3>
                     {items.map((item) => (
                       <div key={item.id} className="flex justify-between text-sm py-2">
-                        <span className="text-gray-600">{item.name} x{item.quantity}</span>
+                        <span className="text-gray-600">
+                          {item.name} x{item.quantity}
+                        </span>
                         <span className="text-gray-800">
                           R$ {((item.promotionalPrice || item.price) * item.quantity).toFixed(2).replace(".", ",")}
                         </span>
@@ -588,7 +620,7 @@ export default function CheckoutPage() {
                     className="flex-1 bg-brand-gold text-white py-3 rounded-lg hover:bg-brand-gold-dark transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {loading ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <>
                         <FiLock /> Finalizar Pedido
@@ -603,7 +635,7 @@ export default function CheckoutPage() {
           <div className="lg:col-span-1">
             <div className="bg-gray-50 p-6 rounded-lg sticky top-24">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">Resumo do Pedido</h2>
-              
+
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal ({items.length} itens)</span>

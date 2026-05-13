@@ -31,6 +31,11 @@ export const metadata: Metadata = {
     description: "Acessórios femininos elegantes e modernos",
     type: "website",
     locale: "pt_BR",
+    siteName: "Bella Acessórios",
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 

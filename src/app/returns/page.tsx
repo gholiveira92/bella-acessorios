@@ -54,7 +54,7 @@ export default function ReturnsPage() {
             <ul className="text-gray-700 space-y-2">
               <li>• Produtos personalizados não podem ser trocados</li>
               <li>• Custos de frete para troca são responsabilidade do cliente</li>
-              <li>• Defeitos devem ser сообщены em até 30 dias</li>
+              <li>• Defeitos devem ser comunicados em até 30 dias</li>
             </ul>
           </section>
 

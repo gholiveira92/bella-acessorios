@@ -1,25 +1,95 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { FiArrowRight, FiInstagram } from "react-icons/fi";
 import { AnimatedSection, AnimatedCard } from "@/components/ui/AnimatedSection";
 import Hero from "@/components/ui/Hero";
 
-const categories = [
-  { name: "Anéis", slug: "aneis", image: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=400&h=400&fit=crop" },
-  { name: "Brincos", slug: "brincos", image: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400&h=400&fit=crop" },
-  { name: "Colares", slug: "colares", image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400&h=400&fit=crop" },
-  { name: "Pulseiras", slug: "pulseiras", image: "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=400&h=400&fit=crop" },
-  { name: "Tornozeleiras", slug: "tornozeleiras", image: "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=400&h=400&fit=crop" },
-  { name: "Ver Todos", slug: "catalog", image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=400&fit=crop" },
-];
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  image: string;
+}
 
-const featuredProducts = [
-  { id: 1, name: "Anel Casulo Dourado", price: 89.9, promotionalPrice: 69.9, image: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=500&h=500&fit=crop", slug: "anel-casulo-dourado" },
-  { id: 2, name: "Brinco Ponto de Luz", price: 59.9, image: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=500&h=500&fit=crop", slug: "brinco-ponto-de-luz" },
-  { id: 3, name: "Colar Gargantilha", price: 129.9, promotionalPrice: 99.9, image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=500&h=500&fit=crop", slug: "colar-gargantilha" },
-  { id: 4, name: "Pulseira Berloque", price: 79.9, image: "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=500&h=500&fit=crop", slug: "pulseira-berloque" },
-];
+interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  promotionalPrice: number | null;
+  image: string;
+  category?: string;
+}
+
+const fallbackImages: Record<string, string> = {
+  aneis: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=400&h=400&fit=crop",
+  brincos: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400&h=400&fit=crop",
+  colares: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400&h=400&fit=crop",
+  pulseiras: "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=400&h=400&fit=crop",
+  tornozeleiras: "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=400&h=400&fit=crop",
+};
 
 export default function Home() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [newestProducts, setNewestProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchHomeData() {
+      try {
+        const res = await fetch("/api/home");
+        const data = await res.json();
+
+        if (data.featuredCategories) {
+          const cats = data.featuredCategories.map((c: Category) => ({
+            ...c,
+            image: c.image || fallbackImages[c.slug] || `https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=400&fit=crop`,
+          }));
+          setCategories(cats);
+        } else {
+          setCategories([
+            { id: "1", name: "Anéis", slug: "aneis", image: fallbackImages.aneis },
+            { id: "2", name: "Brincos", slug: "brincos", image: fallbackImages.brincos },
+            { id: "3", name: "Colares", slug: "colares", image: fallbackImages.colares },
+            { id: "4", name: "Pulseiras", slug: "pulseiras", image: fallbackImages.pulseiras },
+            { id: "5", name: "Tornozeleiras", slug: "tornozeleiras", image: fallbackImages.tornozeleiras },
+            { id: "6", name: "Ver Todos", slug: "catalog", image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=400&fit=crop" },
+          ]);
+        }
+
+        if (data.featuredProducts?.length > 0) {
+          setFeaturedProducts(data.featuredProducts);
+        } else {
+          setFeaturedProducts([
+            { id: "1", name: "Anel Casulo Dourado", slug: "anel-casulo-dourado", price: 89.9, promotionalPrice: 69.9, image: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=500&h=500&fit=crop" },
+            { id: "2", name: "Brinco Ponto de Luz", slug: "brinco-ponto-de-luz", price: 59.9, promotionalPrice: null, image: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=500&h=500&fit=crop" },
+            { id: "3", name: "Colar Gargantilha", slug: "colar-gargantilha", price: 129.9, promotionalPrice: 99.9, image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=500&h=500&fit=crop" },
+            { id: "4", name: "Pulseira Berloque", slug: "pulseira-berloque", price: 79.9, promotionalPrice: null, image: "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=500&h=500&fit=crop" },
+          ]);
+        }
+
+        setNewestProducts(data.newestProducts || []);
+      } catch (error) {
+        console.error("Error fetching home data:", error);
+        setCategories([
+          { id: "1", name: "Anéis", slug: "aneis", image: fallbackImages.aneis },
+          { id: "2", name: "Brincos", slug: "brincos", image: fallbackImages.brincos },
+          { id: "3", name: "Colares", slug: "colares", image: fallbackImages.colares },
+          { id: "4", name: "Pulseiras", slug: "pulseiras", image: fallbackImages.pulseiras },
+          { id: "5", name: "Tornozeleiras", slug: "tornozeleiras", image: fallbackImages.tornozeleiras },
+          { id: "6", name: "Ver Todos", slug: "catalog", image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=400&h=400&fit=crop" },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchHomeData();
+  }, []);
+
   return (
     <div className="flex flex-col">
       <Hero />
@@ -35,7 +105,7 @@ export default function Home() {
               Encontre o acessório perfeito para cada ocasião
             </p>
           </AnimatedSection>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
             {categories.map((category, index) => (
               <AnimatedCard key={category.slug} delay={0.08 * index}>
@@ -71,7 +141,7 @@ export default function Home() {
               </h2>
             </div>
           </AnimatedSection>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {featuredProducts.map((product, index) => (
               <AnimatedCard key={product.id} delay={0.08 * index}>
@@ -118,7 +188,7 @@ export default function Home() {
               </AnimatedCard>
             ))}
           </div>
-          
+
           <div className="text-center mt-10 md:mt-12">
             <Link
               href="/catalog"
@@ -173,8 +243,8 @@ export default function Home() {
                 A elegância mora nos detalhes
               </h2>
               <p className="text-text-secondary text-base leading-relaxed mb-8">
-                Cada peça é desenhada para mulheres que valorizam sofisticação e bom gosto. 
-                Nossos acessórios são mais que украшения — são expressões de personalidade.
+                Cada peça é desenhada para mulheres que valorizam sofisticação e bom gosto.
+                Nossos acessórios são mais que decorações — são expressões de personalidade.
               </p>
               <Link
                 href="/catalog"
@@ -191,7 +261,7 @@ export default function Home() {
       <section className="py-12 md:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-<div className="text-center p-6 md:p-8 rounded-2xl bg-brand-bg-light hover:bg-brand-bg transition-colors">
+            <div className="text-center p-6 md:p-8 rounded-2xl bg-brand-bg-light hover:bg-brand-bg transition-colors">
               <div className="w-14 h-14 bg-brand-gold/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-7 h-7 text-brand-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
@@ -222,14 +292,14 @@ export default function Home() {
         </div>
       </section>
 
-{/* Instagram Section */}
+      {/* Instagram Section */}
       <section className="py-16 md:py-20 bg-brand-bg-light">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <div className="text-center mb-12">
             <span className="text-brand-gold text-sm uppercase tracking-widest font-medium">@bella.acessorios.sa</span>
             <h2 className="text-3xl md:text-4xl font-serif text-brand-gold-dark mt-3">Siga-nos no Instagram</h2>
           </div>
-          
+
           <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-4 mb-10">
             {[
               "https://images.unsplash.com/photo-1617038224538-2a5d96930c30?w=400&h=400&fit=crop",
@@ -244,7 +314,7 @@ export default function Home() {
               </div>
             ))}
           </div>
-          
+
           <div className="text-center">
             <a
               href="https://instagram.com/bella.acessorios.sa"
