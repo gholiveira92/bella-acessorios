@@ -10,11 +10,13 @@ function createPrismaClient() {
   });
 }
 
-export const prisma = global.prisma || createPrismaClient();
+const prisma = global.prisma || createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   global.prisma = prisma;
 }
+
+export default prisma;
 
 export async function disconnectPrisma() {
   if (global.prisma) {
