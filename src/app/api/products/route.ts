@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 
-export async function GET(request: Request) {
-  // Create fresh Prisma client for each request to avoid prepared statement issues
-  const prisma = new PrismaClient({
+function createPrismaClient() {
+  return new PrismaClient({
     log: ["error"],
   });
+}
 
+export async function GET(request: Request) {
+  let prisma;
+  
   try {
+    prisma = createPrismaClient();
     const { searchParams } = new URL(request.url);
     
     const category = searchParams.get("category");
@@ -16,67 +20,77 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "12");
 
-    const where: any = { active: true };
-    
+    let sqlWhere = "WHERE p.active = true";
+    const params: (string | number)[] = [];
+    let p = 1;
+
     if (category && category !== "todos") {
-      where.category = { slug: category };
+      sqlWhere += ` AND c.slug = $${p++}`;
+      params.push(category);
     }
 
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-      ];
+      sqlWhere += ` AND (p.name ILIKE $${p++} OR p.description ILIKE $${p++})`;
+      params.push(`%${search}%`);
+      params.push(`%${search}%`);
     }
 
-    const [products, total, categories] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        include: {
-          category: true,
-          images: { orderBy: { isMain: "desc" }, take: 1 },
-        },
-        orderBy: sort === "price-asc" 
-          ? { price: "asc" } 
-          : sort === "price-desc" 
-          ? { price: "desc" } 
-          : { createdAt: "desc" },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      prisma.product.count({ where }),
-      prisma.category.findMany({ orderBy: { name: "asc" } }),
-    ]);
+    const orderBy = sort === "price-asc" 
+      ? "ORDER BY COALESCE(p.promotional_price, p.price) ASC" 
+      : sort === "price-desc" 
+      ? "ORDER BY COALESCE(p.promotional_price, p.price) DESC" 
+      : "ORDER BY p.created_at DESC";
 
-    const formattedProducts = products.map((p) => ({
-      id: p.id,
-      name: p.name,
-      slug: p.slug,
-      description: p.description,
-      price: p.price,
-      promotionalPrice: p.promotionalPrice,
-      stock: p.stock,
-      category: p.category ? { id: p.category.id, name: p.category.name, slug: p.category.slug } : null,
-      images: p.images.map((img) => ({ id: img.id, url: img.url, isMain: img.isMain })),
-    }));
+    const offset = (page - 1) * limit;
+
+    // Raw SQL with parameters using $1, $2, etc.
+    const productsSql = `
+      SELECT p.id, p.name, p.slug, p.description, p.price, p.promotional_price, p.stock,
+             c.id as cat_id, c.name as cat_name, c.slug as cat_slug,
+             (SELECT json_agg(json_build_object('id', pi.id, 'url', pi.url, 'isMain', pi.is_main) ORDER BY pi.is_main DESC)
+              FROM product_images pi WHERE pi.product_id = p.id) as images
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      ${sqlWhere}
+      GROUP BY p.id, c.id
+      ${orderBy}
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+
+    const countSql = `SELECT COUNT(*)::int as total FROM products p LEFT JOIN categories c ON p.category_id = c.id ${sqlWhere}`;
+
+    const categoriesSql = `SELECT id, name, slug FROM categories ORDER BY name`;
+
+    // Use $queryRawUnsafe with proper parameter mapping
+    const products = await (prisma as any).$queryRawUnsafe(productsSql, ...params);
+    const countResult = await (prisma as any).$queryRawUnsafe(countSql, ...params);
+    const categories = await (prisma as any).$queryRawUnsafe(categoriesSql);
+
+    const total = countResult[0]?.total || 0;
 
     return NextResponse.json({
-      products: formattedProducts,
-      categories: categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug })),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      products: (products as any[]).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        description: p.description,
+        price: parseFloat(p.price),
+        promotionalPrice: p.promotional_price ? parseFloat(p.promotional_price) : null,
+        stock: p.stock,
+        category: p.cat_id ? { id: p.cat_id, name: p.cat_name, slug: p.cat_slug } : null,
+        images: (p.images as any[])?.filter((i: any) => i?.id) || [],
+      })),
+      categories: (categories as any[]).map((c: any) => ({ id: c.id, name: c.name, slug: c.slug })),
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     });
+
   } catch (error: any) {
-    console.error("Products API error:", error);
+    console.error("Products error:", error);
     return NextResponse.json(
       { error: "Erro ao buscar produtos", details: error.message },
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    if (prisma) await prisma.$disconnect();
   }
 }

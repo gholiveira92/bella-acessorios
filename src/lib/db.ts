@@ -1,8 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 
-// Export singleton for TypeScript type inference
-export const prisma = new PrismaClient({
+// Export singleton that works with TypeScript
+const prismaClient = new PrismaClient({
   log: ["error"],
 });
+
+export const prisma = prismaClient;
 
 export default prisma;
