@@ -11,9 +11,12 @@ export function getPool(): Pool {
     
     pool = new Pool({
       connectionString,
-      max: 1, // Use single connection to avoid prepared statement issues
+      max: 1,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
+      ssl: {
+        rejectUnauthorized: false,
+      },
     });
 
     pool.on("error", (err) => {
