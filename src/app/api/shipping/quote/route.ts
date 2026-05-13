@@ -244,11 +244,16 @@ export async function POST(request: Request) {
     const body: ShippingQuoteRequest = await request.json();
     const { cep, weight = 0.5, width = 10, height = 10, length = 10, subtotal = 0 } = body;
 
-    if (!cep || cep.length !== 8) {
+    const cleanCep = cep?.replace(/\D/g, "") || "";
+
+    if (!cleanCep || cleanCep.length !== 8) {
       return NextResponse.json({ error: "CEP inválido" }, { status: 400 });
     }
 
-    if (cep.startsWith("19360") || cep === ORIGIN_CEP) {
+    console.log(`[Shipping] CEP received: ${cep} -> cleaned: ${cleanCep}, subtotal: ${subtotal}`);
+
+    if (cleanCep.startsWith("19360")) {
+      console.log(`[Shipping] Local free shipping applied for Santo Anastácio`);
       const freeQuote: ShippingOption = {
         id: "free-local",
         name: "Frete Grátis (Entrega Local)",

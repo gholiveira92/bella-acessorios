@@ -13,6 +13,14 @@ export interface CartItem {
   variation?: Record<string, string>;
 }
 
+export interface ShippingOption {
+  id: string;
+  name: string;
+  price: number;
+  deliveryTime: number;
+  company?: string;
+}
+
 interface CartContextType {
   items: CartItem[];
   addItem: (item: Omit<CartItem, "id">) => void;
@@ -22,6 +30,15 @@ interface CartContextType {
   itemCount: number;
   subtotal: number;
   isLoading: boolean;
+  cep: string;
+  setCep: (cep: string) => void;
+  shippingOptions: ShippingOption[];
+  selectedShipping: ShippingOption | null;
+  setSelectedShipping: (option: ShippingOption | null) => void;
+  shippingPrice: number;
+  shippingLoading: boolean;
+  fetchShippingOptions: () => Promise<void>;
+  clearShipping: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -29,6 +46,10 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [cep, setCep] = useState("");
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
+  const [selectedShipping, setSelectedShipping] = useState<ShippingOption | null>(null);
+  const [shippingLoading, setShippingLoading] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("cart");
@@ -47,6 +68,47 @@ export function CartProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("cart", JSON.stringify(items));
     }
   }, [items, isLoading]);
+
+  const clearShipping = () => {
+    setCep("");
+    setShippingOptions([]);
+    setSelectedShipping(null);
+  };
+
+  const fetchShippingOptions = async () => {
+    if (cep.replace(/\D/g, "").length !== 8) return;
+
+    setShippingLoading(true);
+    try {
+      const cleanCep = cep.replace(/\D/g, "");
+      const res = await fetch("/api/shipping/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cep: cleanCep,
+          weight: 0.5,
+          width: 10,
+          height: 10,
+          length: 10,
+          subtotal: 0,
+        }),
+      });
+      const data = await res.json();
+      if (data.quotes && data.quotes.length > 0) {
+        setShippingOptions(data.quotes);
+        setSelectedShipping(data.quotes[0]);
+      } else {
+        setShippingOptions([]);
+        setSelectedShipping(null);
+      }
+    } catch (error) {
+      console.error("Shipping fetch error:", error);
+      setShippingOptions([]);
+      setSelectedShipping(null);
+    } finally {
+      setShippingLoading(false);
+    }
+  };
 
   const addItem = (item: Omit<CartItem, "id">) => {
     setItems((prev) => {
@@ -78,6 +140,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => {
     setItems([]);
+    clearShipping();
   };
 
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -85,6 +148,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     (sum, item) => sum + (item.promotionalPrice || item.price) * item.quantity,
     0
   );
+  const shippingPrice = selectedShipping?.price || 0;
 
   return (
     <CartContext.Provider
@@ -97,6 +161,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
         itemCount,
         subtotal,
         isLoading,
+        cep,
+        setCep,
+        shippingOptions,
+        selectedShipping,
+        setSelectedShipping,
+        shippingPrice,
+        shippingLoading,
+        fetchShippingOptions,
+        clearShipping,
       }}
     >
       {children}

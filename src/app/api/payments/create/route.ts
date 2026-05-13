@@ -94,40 +94,55 @@ export async function POST(request: Request) {
 
     if (paymentMethod === "pix") {
       const webhookToken = generateWebhookToken();
-      
-      const mpResponse = await axios.post(
-        "https://api.mercadopago.com/v1/payments",
-        {
-          transaction_amount: total,
-          payment_method_id: "pix",
-          payer: {
-            email: session.user.email || "",
-          },
-          external_reference: orderNumber,
-          description: `Pedido Bella Acessórios - ${orderNumber}`,
-          notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/webhooks/mercadopago`,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
 
-      const mpPayment = mpResponse.data;
+      console.log(`[PIX] Creating payment for order ${orderNumber}, total: ${total}, email: ${session.user.email}`);
 
-      await query(`
-        INSERT INTO payments (id, order_id, provider, method, status, transaction_id, webhook_token, pix_qr_code, pix_copy_paste, created_at, updated_at)
-        VALUES (gen_random_uuid()::text, $1, 'MERCADOPAGO', 'PIX', $2, $3, $4, $5, $6, NOW(), NOW())
-      `, [
-        orderId,
-        mpPayment.status === "pending" ? "PENDING" : mpPayment.status.toUpperCase(),
-        mpPayment.id?.toString(),
-        webhookToken,
-        mpPayment.point_of_interaction?.transaction_data?.qr_code_base64 || "",
-        mpPayment.point_of_interaction?.transaction_data?.qr_code || ""
-      ]);
+      try {
+        const mpResponse = await axios.post(
+          "https://api.mercadopago.com/v1/payments",
+          {
+            transaction_amount: total,
+            payment_method_id: "pix",
+            payer: {
+              email: session.user.email || "",
+            },
+            external_reference: orderNumber,
+            description: `Pedido Bella Acessórios - ${orderNumber}`,
+            notification_url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/webhooks/mercadopago`,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.MERCADOPAGO_ACCESS_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const mpPayment = mpResponse.data;
+        console.log(`[PIX] Mercado Pago response:`, JSON.stringify(mpPayment));
+
+        const qrCodeBase64 = mpPayment?.point_of_interaction?.transaction_data?.qr_code_base64 || "";
+        const qrCodeCopyPaste = mpPayment?.point_of_interaction?.transaction_data?.qr_code || "";
+
+        await query(`
+          INSERT INTO payments (id, order_id, provider, method, status, transaction_id, webhook_token, pix_qr_code, pix_copy_paste, created_at, updated_at)
+          VALUES (gen_random_uuid()::text, $1, 'MERCADOPAGO', 'PIX', $2, $3, $4, $5, $6, NOW(), NOW())
+        `, [
+          orderId,
+          mpPayment.status === "pending" ? "PENDING" : mpPayment.status.toUpperCase(),
+          mpPayment.id?.toString(),
+          webhookToken,
+          qrCodeBase64,
+          qrCodeCopyPaste
+        ]);
+      } catch (pixError: any) {
+        console.error("[PIX] Payment error:", pixError.response?.data || pixError.message);
+        await query(`DELETE FROM orders WHERE id = $1`, [orderId]);
+        return NextResponse.json({
+          error: pixError.response?.data?.message || "Erro ao processar pagamento PIX",
+          details: pixError.response?.data || pixError.message
+        }, { status: 500 });
+      }
     } else if (paymentMethod === "card" && cardToken) {
       const webhookToken = generateWebhookToken();
       

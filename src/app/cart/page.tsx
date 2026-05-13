@@ -1,14 +1,71 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
-import { FiTrash2, FiShoppingBag, FiArrowLeft } from "react-icons/fi";
+import { FiTrash2, FiShoppingBag, FiArrowLeft, FiTruck, FiCheck } from "react-icons/fi";
+
+function formatCep(value: string) {
+  return value.replace(/\D/g, "").replace(/(\d{5})(\d)/, "$1-$2").slice(0, 9);
+}
+
+function formatCepRaw(value: string) {
+  return value.replace(/\D/g, "");
+}
 
 export default function CartPage() {
-  const { items, removeItem, updateQuantity, subtotal, isLoading } = useCart();
+  const {
+    items,
+    removeItem,
+    updateQuantity,
+    subtotal,
+    isLoading,
+    cep,
+    setCep,
+    shippingOptions,
+    selectedShipping,
+    setSelectedShipping,
+    shippingPrice,
+    shippingLoading,
+    fetchShippingOptions,
+    clearShipping,
+  } = useCart();
 
-  const shipping = items.length > 0 ? 15.9 : 0;
-  const total = subtotal + shipping;
+  const [cepInput, setCepInput] = useState(cep);
+  const [shippingError, setShippingError] = useState("");
+
+  const getShippingDisplay = () => {
+    if (cep.length === 8 && shippingOptions.length === 0 && !shippingLoading) {
+      return "Não disponível";
+    }
+    if (selectedShipping) {
+      return selectedShipping.price === 0 ? "GRÁTIS" : `R$ ${selectedShipping.price.toFixed(2).replace(".", ",")}`;
+    }
+    return "A calcular";
+  };
+
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCep(e.target.value);
+    setCepInput(formatted);
+    setShippingError("");
+  };
+
+  const handleCalculateShipping = async () => {
+    const raw = formatCepRaw(cepInput);
+    if (raw.length !== 8) {
+      setShippingError("Digite um CEP válido (8 dígitos)");
+      return;
+    }
+    setCep(raw);
+    await fetchShippingOptions();
+  };
+
+  const handleCepKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleCalculateShipping();
+  };
+
+  const effectiveShipping = subtotal >= 299 && selectedShipping?.price === 0 ? 0 : shippingPrice;
+  const total = subtotal + effectiveShipping;
 
   if (isLoading) {
     return (
@@ -99,8 +156,76 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between text-text-secondary">
                   <span>Frete</span>
-                  <span>R$ {shipping.toFixed(2).replace(".", ",")}</span>
+                  {shippingLoading ? (
+                    <span className="text-xs">Calculando...</span>
+                  ) : (
+                    <span className={selectedShipping?.price === 0 ? "text-green-600 font-medium" : ""}>
+                      {getShippingDisplay()}
+                    </span>
+                  )}
                 </div>
+
+                {cep.length === 0 && !shippingLoading && (
+                  <div className="mt-3 p-3 bg-brand-bg-light rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FiTruck className="text-brand-gold" size={14} />
+                      <span className="text-xs font-medium text-text-primary">Calcular Frete</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="00000-000"
+                        value={cepInput}
+                        onChange={handleCepChange}
+                        onKeyDown={handleCepKeyPress}
+                        className="flex-1 px-3 py-2 bg-white border border-brand-bg-dark rounded text-sm focus:outline-none focus:ring-1 focus:ring-brand-gold"
+                        maxLength={9}
+                      />
+                      <button
+                        onClick={handleCalculateShipping}
+                        disabled={cepInput.length < 9 || shippingLoading}
+                        className="px-3 py-2 bg-brand-gold text-white text-xs rounded font-medium hover:opacity-90 disabled:opacity-50"
+                      >
+                        OK
+                      </button>
+                    </div>
+                    {shippingError && (
+                      <p className="text-xs text-red-500 mt-1">{shippingError}</p>
+                    )}
+                  </div>
+                )}
+
+                {shippingOptions.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    <p className="text-xs text-text-muted font-medium">Opções de envio:</p>
+                    {shippingOptions.map((opt) => (
+                      <label
+                        key={opt.id}
+                        className={`flex items-center justify-between p-2 bg-white rounded border cursor-pointer ${
+                          selectedShipping?.id === opt.id ? "border-brand-gold" : "border-brand-bg-dark"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="shipping-option"
+                            checked={selectedShipping?.id === opt.id}
+                            onChange={() => setSelectedShipping(opt)}
+                            className="accent-brand-gold"
+                          />
+                          <span className="text-xs text-text-primary">
+                            {opt.name}
+                            {opt.company && <span className="text-text-muted"> ({opt.company})</span>}
+                            {" - "}{opt.deliveryTime + 2} dias
+                          </span>
+                        </div>
+                        <span className={`text-xs font-semibold ${opt.price === 0 ? "text-green-600" : "text-text-primary"}`}>
+                          {opt.price === 0 ? "GRÁTIS" : `R$ ${opt.price.toFixed(2).replace(".", ",")}`}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
                 <div className="border-t pt-2 flex justify-between font-semibold text-text-primary">
                   <span>Total</span>
                   <span className="text-brand-gold-dark">R$ {total.toFixed(2).replace(".", ",")}</span>

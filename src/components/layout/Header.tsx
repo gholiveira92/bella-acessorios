@@ -43,9 +43,9 @@ export default function Header() {
     <>
       <header className="fixed top-0 left-0 right-0 z-50">
         {/* Top Bar */}
-        <div className="bg-brand-gold-dark text-white text-[10px] py-1.5">
-          <div className="max-w-7xl mx-auto px-4 md:px-10 flex justify-center items-center gap-4 md:gap-8">
-            <span className="hidden sm:inline">Frete grátis acima de R$ 299</span>
+        <div className="bg-brand-gold-dark text-white text-[9px] sm:text-[10px] py-1.5">
+          <div className="max-w-7xl mx-auto px-4 md:px-10 flex justify-center items-center gap-3 sm:gap-8">
+            <span>Frete grátis acima de R$ 299</span>
             <span className="hidden sm:inline">·</span>
             <span>3x sem juros</span>
           </div>
