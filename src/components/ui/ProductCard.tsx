@@ -51,18 +51,18 @@ export default function ProductCard({ product }: ProductCardProps) {
           
           {/* Favorite Button */}
           <button 
-            className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm text-text-muted hover:text-brand-gold transition-colors z-10"
+            className="absolute top-2 right-2 sm:top-3 sm:right-3 w-9 h-9 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-white/80 backdrop-blur-sm text-text-muted hover:text-brand-gold transition-colors z-10 active:scale-90"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
             }}
           >
-            <FiHeart size={16} />
+            <FiHeart size={14} className="sm:size-4" />
           </button>
 
           {/* Discount Badge */}
           {product.promotionalPrice && (
-            <span className="absolute top-3 left-3 bg-brand-gold text-white text-[10px] font-medium px-2 py-1 rounded-full">
+            <span className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-brand-gold text-white text-[10px] sm:text-[10px] font-medium px-2 py-0.5 sm:py-1 rounded-full">
               {Math.round((1 - product.promotionalPrice / product.price) * 100)}% OFF
             </span>
           )}

@@ -50,7 +50,7 @@ export default function Hero() {
   }, []);
 
   return (
-    <section className="relative w-full h-[60vh] md:h-[80vh] overflow-hidden">
+    <section className="relative w-full min-h-[420px] sm:h-[55vh] md:h-[80vh] overflow-hidden">
       {/* Background Slides */}
       <div className="absolute inset-0">
         <AnimatePresence mode="wait">
@@ -83,13 +83,13 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="max-w-3xl mx-auto px-4 text-center"
+            className="max-w-3xl mx-auto px-4 sm:px-6 text-center"
           >
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.6 }}
-              className="text-3xl md:text-5xl lg:text-6xl font-serif text-white mb-4 md:mb-6 leading-[1.2] drop-shadow-lg"
+              className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-serif text-white mb-3 sm:mb-4 md:mb-6 leading-[1.15] sm:leading-[1.2] drop-shadow-lg"
             >
               {slides[currentSlide].title}
             </motion.h1>
@@ -97,7 +97,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7, duration: 0.6 }}
-              className="text-sm md:text-lg text-white/90 mb-8 md:mb-10 max-w-xl mx-auto leading-relaxed drop-shadow-md"
+              className="text-xs sm:text-sm md:text-lg text-white/90 mb-6 sm:mb-8 md:mb-10 max-w-xl mx-auto leading-relaxed drop-shadow-md"
             >
               {slides[currentSlide].subtitle}
             </motion.p>
@@ -105,17 +105,17 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.9, duration: 0.6 }}
-              className="flex flex-wrap justify-center gap-3 md:gap-4"
+              className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4"
             >
               <Link
                 href={slides[currentSlide].ctaLink}
-                className="px-6 py-3 md:px-8 md:py-3.5 bg-white text-brand-gold-dark rounded-full font-sans text-sm font-medium hover:bg-brand-bg-light transition-all duration-300 shadow-lg hover:shadow-xl"
+                className="px-6 sm:px-8 py-3 sm:py-3.5 bg-white text-brand-gold-dark rounded-full font-sans text-sm font-medium hover:bg-brand-bg-light transition-all duration-300 shadow-lg hover:shadow-xl w-full sm:w-auto"
               >
                 {slides[currentSlide].cta}
               </Link>
               <Link
                 href={slides[currentSlide].ctaLink}
-                className="px-6 py-3 md:px-8 md:py-3.5 bg-white/20 backdrop-blur-sm text-white border border-white/40 rounded-full font-sans text-sm font-medium hover:bg-white/30 transition-all duration-300"
+                className="hidden sm:inline-flex px-6 sm:px-8 py-3 sm:py-3.5 bg-white/20 backdrop-blur-sm text-white border border-white/40 rounded-full font-sans text-sm font-medium hover:bg-white/30 transition-all duration-300"
               >
                 {slides[currentSlide].ctaSecondary}
               </Link>
@@ -125,13 +125,13 @@ export default function Hero() {
       </div>
 
       {/* Indicators */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+      <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20 px-4">
         {slides.map((_, index) => (
           <button
             key={index}
             onClick={() => setCurrentSlide(index)}
-            className={`h-0.5 rounded-full transition-all duration-500 ${
-              currentSlide === index ? "bg-white w-8" : "bg-white/40 w-4 hover:bg-white/60"
+            className={`h-0.5 sm:h-1 rounded-full transition-all duration-500 ${
+              currentSlide === index ? "bg-white w-5 sm:w-8" : "bg-white/40 w-3 sm:w-4 hover:bg-white/60"
             }`}
             aria-label={`Slide ${index + 1}`}
           />
@@ -139,7 +139,7 @@ export default function Hero() {
       </div>
 
       {/* Scroll Indicator */}
-      <div className="absolute bottom-6 right-6 md:right-10 hidden md:flex flex-col items-center gap-2 text-white/50">
+      <div className="absolute bottom-4 sm:bottom-6 right-6 md:right-10 hidden md:flex flex-col items-center gap-2 text-white/50">
         <span className="text-[10px] uppercase tracking-widest">Scroll</span>
         <div className="w-px h-6 bg-gradient-to-b from-white/50 to-transparent" />
       </div>

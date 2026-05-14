@@ -95,18 +95,18 @@ export default function Home() {
       <Hero />
 
       {/* Categories */}
-      <section className="py-16 md:py-24 bg-brand-bg-light">
-        <div className="max-w-7xl mx-auto px-4 md:px-8">
+      <section className="py-12 sm:py-16 md:py-24 bg-brand-bg-light">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <AnimatedSection delay={0.2}>
-            <h2 className="text-3xl md:text-4xl font-serif text-center text-brand-gold-dark mb-3">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif text-center text-brand-gold-dark mb-2 sm:mb-3">
               Nossas Categorias
             </h2>
-            <p className="text-center text-text-muted mb-12 max-w-xl mx-auto">
+            <p className="text-center text-text-muted mb-8 sm:mb-10 md:mb-12 max-w-xl mx-auto text-sm sm:text-base">
               Encontre o acessório perfeito para cada ocasião
             </p>
           </AnimatedSection>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6">
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
             {categories.map((category, index) => (
               <AnimatedCard key={category.slug} delay={0.08 * index}>
                 <Link
@@ -131,8 +131,8 @@ export default function Home() {
       </section>
 
       {/* Featured Products */}
-      <section className="py-16 md:py-24 bg-brand-bg">
-        <div className="max-w-7xl mx-auto px-4 md:px-8">
+      <section className="py-12 sm:py-16 md:py-24 bg-brand-bg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <AnimatedSection delay={0.2}>
             <div className="text-center mb-12">
               <span className="text-brand-gold font-medium text-sm uppercase tracking-widest">Destaques</span>
@@ -142,7 +142,7 @@ export default function Home() {
             </div>
           </AnimatedSection>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
             {featuredProducts.map((product, index) => (
               <AnimatedCard key={product.id} delay={0.08 * index}>
                 <Link href={`/product/${product.slug}`} className="group block">
@@ -201,24 +201,25 @@ export default function Home() {
       </section>
 
       {/* Lifestyle Section 01 */}
-      <section className="relative h-[50vh] md:h-[60vh] lg:h-[70vh] overflow-hidden">
+      <section className="relative min-h-[350px] sm:min-h-[400px] h-[55vh] sm:h-[60vh] md:h-[70vh] overflow-hidden">
         <img
           src="https://images.unsplash.com/photo-1589128777073-263566ae5e4d?w=1920&h=1080&fit=crop&q=80"
           alt="Mulher elegante com acessórios"
           className="w-full h-full object-cover"
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-brand-gold-dark/30" />
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center max-w-2xl px-4">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-serif text-white mb-4 leading-tight">
+          <div className="text-center max-w-2xl px-4 sm:px-6">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-serif text-white mb-3 sm:mb-4 leading-tight">
               Elegância nos pequenos detalhes
             </h2>
-            <p className="text-white/90 text-base md:text-lg mb-8">
+            <p className="text-white/90 text-sm sm:text-base md:text-lg mb-6 sm:mb-8">
               Acessórios que complementam sua essência e elevam seu estilo.
             </p>
             <Link
               href="/catalog?category=aneis"
-              className="inline-flex items-center gap-2 px-8 py-3 bg-white text-brand-gold-dark rounded-full font-sans text-sm font-medium hover:bg-brand-bg-light transition-all duration-300"
+              className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 bg-white text-brand-gold-dark rounded-full font-sans text-sm font-medium hover:bg-brand-bg-light transition-all duration-300"
             >
               Ver Coleção
             </Link>
@@ -234,15 +235,16 @@ export default function Home() {
               <img
                 src="https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=1000&fit=crop&q=80"
                 alt="Acessórios premium"
-                className="w-full h-[400px] md:h-[500px] object-cover rounded-xl"
+                className="w-full h-[280px] sm:h-[350px] md:h-[500px] object-cover rounded-xl"
+                loading="lazy"
               />
             </div>
-            <div className="order-1 md:order-2 text-center md:text-left">
-              <span className="text-brand-gold text-sm uppercase tracking-widest font-medium">Editorial</span>
-              <h2 className="text-3xl md:text-4xl font-serif text-brand-gold-dark mt-4 mb-6">
+            <div className="order-1 md:order-2 text-center md:text-left px-2">
+              <span className="text-brand-gold text-xs sm:text-sm uppercase tracking-widest font-medium">Editorial</span>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif text-brand-gold-dark mt-3 sm:mt-4 mb-4 sm:mb-6 leading-tight">
                 A elegância mora nos detalhes
               </h2>
-              <p className="text-text-secondary text-base leading-relaxed mb-8">
+              <p className="text-text-secondary text-sm sm:text-base leading-relaxed mb-6 sm:mb-8">
                 Cada peça é desenhada para mulheres que valorizam sofisticação e bom gosto.
                 Nossos acessórios são mais que decorações — são expressões de personalidade.
               </p>
@@ -300,7 +302,7 @@ export default function Home() {
             <h2 className="text-3xl md:text-4xl font-serif text-brand-gold-dark mt-3">Siga-nos no Instagram</h2>
           </div>
 
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-4 mb-10">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2 sm:gap-4 mb-8 sm:mb-10">
             {[
               "https://images.unsplash.com/photo-1617038224538-2a5d96930c30?w=400&h=400&fit=crop",
               "https://images.unsplash.com/photo-1599643477877-530eb83abc8e?w=400&h=400&fit=crop",

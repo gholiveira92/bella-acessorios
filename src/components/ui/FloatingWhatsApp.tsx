@@ -28,7 +28,7 @@ export default function FloatingWhatsApp() {
           animate={{ opacity: 1, scale: 1, x: 0 }}
           exit={{ opacity: 0, scale: 0, x: 20 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="fixed bottom-6 left-6 z-40"
+          className="fixed bottom-20 sm:bottom-6 left-4 sm:left-6 z-40"
         >
           <button
             onClick={handleClick}

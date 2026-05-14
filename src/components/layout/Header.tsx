@@ -43,10 +43,10 @@ export default function Header() {
     <>
       <header className="fixed top-0 left-0 right-0 z-50">
         {/* Top Bar */}
-        <div className="bg-brand-gold-dark text-white text-[9px] sm:text-[10px] py-1.5">
-          <div className="max-w-7xl mx-auto px-4 md:px-10 flex justify-center items-center gap-3 sm:gap-8">
+        <div className="bg-brand-gold-dark text-white text-[10px] sm:text-[10px] py-2 sm:py-1.5">
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-10 flex justify-center items-center gap-3 sm:gap-6 md:gap-8 flex-wrap">
             <span>Frete grátis acima de R$ 299</span>
-            <span className="hidden sm:inline">·</span>
+            <span className="hidden xs:inline">·</span>
             <span>3x sem juros</span>
           </div>
         </div>
@@ -236,7 +236,7 @@ export default function Header() {
                 animate={{ x: 0 }}
                 exit={{ x: "-100%" }}
                 transition={{ type: "tween", duration: 0.25 }}
-                className="fixed top-0 left-0 bottom-0 w-72 bg-white z-50 md:hidden shadow-xl"
+                className="fixed top-0 left-0 bottom-0 w-[75vw] sm:w-72 bg-white z-50 sm:hidden shadow-xl max-w-[300px]"
               >
                 <div className="flex items-center justify-between p-5 border-b border-brand-bg-light">
                   <span className="text-lg font-serif text-brand-gold-dark">Menu</span>

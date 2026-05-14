@@ -178,7 +178,7 @@ const handleAddToCart = () => {
             {product.category.name}
           </Link>
           <FiChevronRight size={12} />
-          <span className="text-text-primary truncate max-w-[200px]">{product.name}</span>
+          <span className="text-text-primary truncate max-w-[100px] sm:max-w-[200px]">{product.name}</span>
         </nav>
 
         {/* Main Content */}
@@ -247,7 +247,7 @@ const handleAddToCart = () => {
                               }
                             }}
                             disabled={variation.stock === 0}
-                            className={`px-4 py-2 rounded-lg border text-sm transition-all ${
+                            className={`px-3 sm:px-4 py-2 sm:py-2.5 md:py-2 rounded-lg border text-xs sm:text-sm transition-all ${
                               selectedVariations[type] === variation.value
                                 ? "border-brand-gold bg-brand-gold text-white"
                                 : variation.stock === 0
@@ -322,12 +322,12 @@ const handleAddToCart = () => {
 
         {/* Tabs */}
         <div className="mb-16">
-          <div className="flex border-b border-brand-bg-dark mb-6">
+          <div className="flex border-b border-brand-bg-dark mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:-mx-0 sm:px-0">
             {["description", "details", "care", "delivery"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-6 py-3 font-sans text-sm font-medium transition-colors relative ${
+                className={`px-4 sm:px-5 md:px-6 py-3 font-sans text-xs sm:text-sm font-medium transition-colors relative whitespace-nowrap flex-shrink-0 ${
                   activeTab === tab 
                     ? "text-brand-gold" 
                     : "text-text-muted hover:text-text-primary"
