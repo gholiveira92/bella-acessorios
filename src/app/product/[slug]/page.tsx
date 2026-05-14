@@ -166,7 +166,7 @@ const handleAddToCart = () => {
           url={`${process.env.NEXT_PUBLIC_SITE_URL}/product/${product.slug}`}
         />
       )}
-      <div className="max-w-7xl mx-auto px-4 py-6 md:py-8">
+      <div className="max-w-7xl mx-auto px-4 pt-4 md:pt-6">
         
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-xs md:text-sm text-text-muted mb-8">
